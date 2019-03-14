@@ -24,7 +24,7 @@ __Cu_Ha.csv__
 |TOT_Cu|Mean sediment total extractable Cu|mg Cu/kg dw|
 |SEMAVSfOC|Bioavailable Cu|µmol Cu/g OM|
 |SEMAVSfOC2|Corrected bioavailable Cu|µmol Cu/g OM|
-|Count|Total count of living *H. azteca*|NUmber alive|
+|Count|Total count of living *H. azteca*|Number alive|
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 
 
