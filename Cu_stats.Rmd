@@ -142,6 +142,52 @@ DS = ECXX(DSg,10) #EC10 = 29
 for(i in 1:3){lines(DS$CImat[,1],DS$CImat[,1+i])}
 ```
 
+
+###Ocoee flume-aged - EC10 and LC50
+```{r Dow flume-aged, echo=F}
+plot(Count/10~TOT_Cu,data=OcoeeToxF,log="x")
+OFsurv <- glm(cbind(Count,Dead)~log10(TOT_Cu),data=OcoeeToxF,binomial)
+summary(OFsurv)
+shapiro.test(resid(OFsurv)) #OK
+1-OFsurv$deviance/OFsurv$null.deviance
+ #p < 0.001, r2= 0.59
+
+OFs = LCXX(OFsurv,50) #LC50 = 2520
+for(i in 1:3){lines(OFs$CImat[,1],OFs$CImat[,1+i])}
+
+plot(RGR~TOT_Cu,data=OcoeeToxF,log="x")
+OFg <- nls(RGR~SSlogis(log10(TOT_Cu),Asym,xmid,scal),data=OcoeeToxF)
+summary(OFg)
+shapiro.test(resid(OFg)) #OK
+ANOVA_F(OFg,OcoeeToxF$RGR) #p < 0.001, r2 = 0.91
+
+OF = ECXX(OFg,10) #EC10 = 217
+for(i in 1:3){lines(OF$CImat[,1],OF$CImat[,i+1])}
+```
+
+###Ocoee spiked - EC10 and LC50
+```{r Dow spiked, echo=F}
+plot(Count/10~TOT_Cu,data=OcoeeToxS,log="x")
+OSsurv <- glm(cbind(Count,Dead)~log10(TOT_Cu),data=OcoeeToxS,binomial)
+shapiro.test(resid(OSsurv)) #OK
+summary(OSsurv)
+1-OSsurv$deviance/OSsurv$null.deviance
+#p < 0.001, r2 = 0.54
+
+OSs = LCXX(OSsurv,50) #LC10 = 1590
+for(i in 1:3){lines(OSs$CImat[,1],OSs$CImat[,1+i])}
+
+plot(RGR~TOT_Cu,data=OcoeeToxS,log="x")
+OSg <- nls(RGR~SSlogis(log10(TOT_Cu),Asym,xmid,scal),data=OcoeeToxS)
+shapiro.test(resid(OSg)) #OK
+summary(OSg)
+ANOVA_F(OSg,OcoeeToxS$RGR) #p < 0.001, r2 = 0.89
+
+OS = ECXX(OSg,10) #EC10 = 238
+for(i in 1:3){lines(OS$CImat[,1],OS$CImat[,i+1])}
+```
+
+
 ###Bioavailable Cu and growth response
 ```{r Cu bioavail, echo=F}
 #Dow
