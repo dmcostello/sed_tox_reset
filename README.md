@@ -28,8 +28,8 @@ __Cu_Ha.csv__
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 
 
-Variable codes and notes
-Treat: F = aged S = freshly spiked
-SEMAVSfOC2: Correction was to set negative values (i.e., AVS in excess of SEM) to 1. Required for log-linear regression
+_Variable codes and notes_
+Treat: F = aged S = freshly spiked;
+SEMAVSfOC2: Correction was to set negative values (i.e., AVS in excess of SEM) to 1 to allow for log-linear regression;
 Count: A total of 10 *H. azteca* were added to each beaker
 
