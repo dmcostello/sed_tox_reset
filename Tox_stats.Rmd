@@ -1,0 +1,500 @@
+---
+title: "Statistics for sediment toxicity"
+author: "Dave Costello"
+date: "May 2019"
+output: html_document
+---
+
+Code for analysis presented in: 
+Costello et al. 2019 Hitting reset on sediment toxicity: Sediment homogenization alters the toxicity of metal-amended sediments. *Environmental Toxicology and Chemistry.*
+
+##Functions
+```{r Functions, include=F}
+#Function to calculate EC values for growth with 95% confidence intervals
+ECXX=function(model,percent){
+  ECname = paste("EC",percent)
+  dose=names(model$dataClasses)
+  EC = (100-percent)/100 
+  ref = model$m$getPar()[1]
+  min.x = 1
+  max.x = 10000 #Might need to change the range
+  range = seq(min.x,max.x,by=1)
+  new.range = data.frame(frame=seq(min.x,max.x,by=1))
+  names(new.range)[[1]]=dose
+  bf = predict(model,newdata=new.range)
+  locEC=which.min(abs(bf-ref*EC))
+  se = sqrt(apply(attr(predict(model, newdata=new.range),"gradient"),1,function(x) sum(vcov(model)*outer(x,x))))
+  LCI=bf+se*qnorm(0.025)
+  locL=which.min(abs(LCI-ref*EC))
+  UCI=bf+se*qnorm(0.975)
+  locU=which.min(abs(UCI-ref*EC))
+  result=c(range[locEC],range[locL],range[locU])
+  result = signif(result,digits=3)
+  names(result)[[1]]=ECname
+  names(result)[[2]]="Lower-bound (2.5%)"
+  names(result)[[3]]="Upper-bound (97.5%)"
+  print(result)
+  mat=cbind(new.range,bf,LCI,UCI)
+  invisible(list(ResultTable=result,CImat=mat))
+}
+
+#Function to calculate LC values for survival with 95% confidence intervals
+LCXX=function(model,percent){
+  LCname = paste("LC",percent)
+  dose = names(model$coef)[2]
+  dose = ifelse(grepl("log",dose),sub("\\).*", "", sub(".*\\(", "", dose)) ,dose)
+  EC = (100-percent)/100 
+  min.x = 1
+  max.x = 10000 #Might need to change the range
+  range = seq(min.x,max.x,by=1)
+  new.range = data.frame(frame=seq(min.x,max.x,by=1))
+  names(new.range)[[1]]=dose
+  bf = predict(model,newdata=new.range,type="response",se.fit=T)
+  locLC=which.min(abs(bf$fit-EC))
+  LCI=bf$fit+bf$se.fit*qnorm(0.025)
+  locL=which.min(abs(LCI-EC))
+  UCI=bf$fit+bf$se.fit*qnorm(0.975)
+  locU=which.min(abs(UCI-EC))
+  result=c(range[locLC],range[locL],range[locU])
+  result = signif(result,digits=3)
+  names(result)[[1]]=LCname
+  names(result)[[2]]="Lower-bound (2.5%)"
+  names(result)[[3]]="Upper-bound (97.5%)"
+  print(result)
+  mat=cbind(new.range,bf$fit,LCI,UCI)
+  invisible(list(ResultTable=result,CImat=mat))
+  	}
+
+#Function to complete ANOVA-like inference from non-linear least-squares regression
+ANOVA_F=function(mod,y){
+  ypred=predict(mod)
+  y.no.na = y[!is.na(y)]
+  dfnum = length(mod$m$getPar())-1
+  dfden = length(y.no.na)-length(mod$m$getPar())
+  SSerr=sum((ypred-y.no.na)^2)
+	SSreg=sum((ypred-mean(y.no.na))^2)
+	SStot = SSerr + SSreg
+  Frat = (SSreg/dfnum)/(SSerr/dfden)
+  probF = pf(Frat,dfnum,dfden,lower.tail=F)
+  Rsquare = 1-(SSerr/SStot)
+  result=c(Frat,probF,Rsquare)
+  names(result)[[1]]="F ratio"
+	names(result)[[2]]="P-value"
+  names(result)[[3]]="R-squared"
+  return(result)
+	}
+```
+
+#COPPER ANALYSES
+
+##Import data
+```{r Cu data import}
+CuTox<-read.csv(file="Cu_Ha.csv")
+summary(CuTox)
+CuTox$Nom_Cu<-factor(CuTox$Nom_Cu)
+CuTox$Dead<-10-CuTox$Count
+
+OcoeeTox<-subset(CuTox,CuTox$Sediment=="Ocoee")
+DowTox<-subset(CuTox,CuTox$Sediment=="Dow")
+OcoeeTox$Nom_Cu<-OcoeeTox$Nom_Cu[,drop=T]
+DowTox$Nom_Cu<-DowTox$Nom_Cu[,drop=T]
+DowToxF<-subset(DowTox,DowTox$Treat=="F")
+DowToxS<-subset(DowTox,DowTox$Treat=="S")
+OcoeeToxF<-subset(OcoeeTox,OcoeeTox$Treat=="F")
+OcoeeToxS<-subset(OcoeeTox,OcoeeTox$Treat=="S")
+```
+
+###Dow flume-aged - EC10 and LC50
+```{r Dow flume-aged}
+plot(Count/10~(TOT_Cu),data=DowToxF,log="x")
+DFsurv <- glm(cbind(Count,Dead)~log10(TOT_Cu),data=DowToxF,family=binomial)
+summary(DFsurv)
+shapiro.test(resid(DFsurv)) #OK
+#p < 0.001
+1-DFsurv$deviance/DFsurv$null.deviance
+#R2 = 0.55
+
+DFs = LCXX(DFsurv,50) #LC50 = 435 mg/kg
+for(i in 1:3){lines(DFs$CImat[,1],(DFs$CImat[,1+i]))}
+
+plot(RGR~TOT_Cu,data=DowToxF,log="x")
+DFg <- nls(RGR~SSlogis(log10(TOT_Cu),Asym,xmid,scal),data=DowToxF)
+summary(DFg)
+shapiro.test(resid(DFg)) #OK
+ANOVA_F(DFg,DowToxF$RGR) # p < 0.001, r2 = 0.88
+
+DF = ECXX(DFg,10) #EC10 = 57
+for(i in 1:3){lines(DF$CImat[,1],DF$CImat[,1+i])}
+```
+
+###Dow spiked - EC10 and LC50
+```{r Dow spiked}
+plot(Count/10~TOT_Cu,data=DowToxS,log="x")
+DSsurv <- glm(cbind(Count,Dead)~log10(TOT_Cu),data=DowToxS,family=binomial)
+summary(DSsurv)
+shapiro.test(resid(DSsurv)) #0.003
+1-DSsurv$deviance/DSsurv$null.deviance
+#p < 0.001, r2 = 0.74
+
+DSs = LCXX(DSsurv,50) #LC50 395 
+for(i in 1:3){lines(DSs$CImat[,1],DSs$CImat[,i+1])}
+
+plot(RGR~TOT_Cu,data=DowToxS,log="x")
+DSg <- nls(RGR~SSlogis(log10(TOT_Cu),Asym,xmid,scal),data=DowToxS)
+summary(DSg)
+shapiro.test(resid(DSg)) #OK
+ANOVA_F(DSg,DowToxS$RGR) #p < 0.001, r2 = 0.93
+
+DS = ECXX(DSg,10) #EC10 = 29
+for(i in 1:3){lines(DS$CImat[,1],DS$CImat[,1+i])}
+```
+
+
+###Ocoee flume-aged - EC10 and LC50
+```{r Dow flume-aged}
+plot(Count/10~TOT_Cu,data=OcoeeToxF,log="x")
+OFsurv <- glm(cbind(Count,Dead)~log10(TOT_Cu),data=OcoeeToxF,binomial)
+summary(OFsurv)
+shapiro.test(resid(OFsurv)) #OK
+1-OFsurv$deviance/OFsurv$null.deviance
+ #p < 0.001, r2= 0.59
+
+OFs = LCXX(OFsurv,50) #LC50 = 2520
+for(i in 1:3){lines(OFs$CImat[,1],OFs$CImat[,1+i])}
+
+plot(RGR~TOT_Cu,data=OcoeeToxF,log="x")
+OFg <- nls(RGR~SSlogis(log10(TOT_Cu),Asym,xmid,scal),data=OcoeeToxF)
+summary(OFg)
+shapiro.test(resid(OFg)) #OK
+ANOVA_F(OFg,OcoeeToxF$RGR) #p < 0.001, r2 = 0.91
+
+OF = ECXX(OFg,10) #EC10 = 217
+for(i in 1:3){lines(OF$CImat[,1],OF$CImat[,i+1])}
+```
+
+###Ocoee spiked - EC10 and LC50
+```{r Dow spiked}
+plot(Count/10~TOT_Cu,data=OcoeeToxS,log="x")
+OSsurv <- glm(cbind(Count,Dead)~log10(TOT_Cu),data=OcoeeToxS,binomial)
+shapiro.test(resid(OSsurv)) #OK
+summary(OSsurv)
+1-OSsurv$deviance/OSsurv$null.deviance
+#p < 0.001, r2 = 0.54
+
+OSs = LCXX(OSsurv,50) #LC50 = 1590
+for(i in 1:3){lines(OSs$CImat[,1],OSs$CImat[,1+i])}
+
+plot(RGR~TOT_Cu,data=OcoeeToxS,log="x")
+OSg <- nls(RGR~SSlogis(log10(TOT_Cu),Asym,xmid,scal),data=OcoeeToxS)
+shapiro.test(resid(OSg)) #OK
+summary(OSg)
+ANOVA_F(OSg,OcoeeToxS$RGR) #p < 0.001, r2 = 0.89
+
+OS = ECXX(OSg,10) #EC10 = 238
+for(i in 1:3){lines(OS$CImat[,1],OS$CImat[,i+1])}
+```
+
+
+###Bioavailable Cu and growth response
+```{r Cu bioavail}
+#Dow
+plot(RGR~SEMAVSfOC2,data=DowToxS,ylim=c(0,0.12),col="orangered3",las=1,log="x",xlim=c(1,1000))
+points(RGR~SEMAVSfOC2,data=DowToxF,col="royalblue3",pch=15)
+
+#Dow F alone
+DFsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=DowToxF)
+shapiro.test(resid(DFsao))
+summary(DFsao)
+ANOVA_F(DFsao,DowToxF$RGR)
+DF.EC <- ECXX(DFsao,10)
+
+#Dow S alone
+DSsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=DowToxS)
+shapiro.test(resid(DSsao))
+summary(DSsao)
+ANOVA_F(DSsao,DowToxS$RGR)
+DS.EC <-ECXX(DSsao,10)
+
+#Combined model
+Dsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=DowTox)
+shapiro.test(resid(Dsao))
+summary(Dsao)
+ANOVA_F(Dsao,DowTox$RGR)
+D.EC <- ECXX(Dsao,10)
+
+#Ocoee
+plot(RGR~SEMAVSfOC2,data=OcoeeToxS,ylim=c(0,0.12),col="orangered3",las=1,log="x",xlim=c(1,10000))
+points(RGR~SEMAVSfOC2,data=OcoeeToxF,col="royalblue3",pch=15)
+
+#Ocoee F alone
+OFsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=OcoeeToxF)
+summary(OFsao)
+shapiro.test(resid(OFsao))
+ANOVA_F(OFsao,OcoeeToxF$RGR)
+OF.EC <- ECXX(OFsao,10)
+
+#Ocoee S alone
+OSsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=OcoeeToxS)
+summary(OSsao)
+shapiro.test(resid(OSsao))
+ANOVA_F(OSsao,OcoeeToxS$RGR)
+OS.EC <- ECXX(OSsao,10)
+
+#Combined model
+Osao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=OcoeeTox)
+shapiro.test(resid(Osao))
+summary(Osao)
+ANOVA_F(Osao,OcoeeTox$RGR)
+O.EC <- ECXX(Osao,10)
+```
+
+#NICKEL ANALYSES
+
+##Import data
+```{r Ni data import}
+NiTox<-read.csv(file="Ni_Ha.csv")
+summary(NiTox)
+NiTox$Nom_Ni<-factor(NiTox$Nom_Ni)
+NiTox$Dead<-10-NiTox$Count
+
+BurnTox<-subset(NiTox,NiTox$Sediment=="Burn")
+RaisinTox<-subset(NiTox,NiTox$Sediment=="Raisin")
+BurnTox$Nom_Ni<-BurnTox$Nom_Ni[,drop=T]
+RaisinTox$Nom_Ni<-RaisinTox$Nom_Ni[,drop=T]
+BurnToxF<-subset(BurnTox,BurnTox$Treat=="F")
+BurnToxS<-subset(BurnTox,BurnTox$Treat=="S")
+RaisinToxF<-subset(RaisinTox,RaisinTox$Treat=="F")
+RaisinToxS<-subset(RaisinTox,RaisinTox$Treat=="S")
+```
+
+###Burntwood flume-aged - EC10 and LC50
+```{r Burntwood flume-aged}
+plot(Count/10~TOT_Ni,log="x",data=BurnToxF)
+BFsurv = glm(cbind(Count,Dead)~log10(TOT_Ni),data=BurnToxF,binomial)
+summary(BFsurv)
+shapiro.test(resid(BFsurv)) #0.02
+1-BFsurv$deviance/BFsurv$null.deviance
+#p = 0.79, r2 < 0.01
+#No significant mortality in any treatments
+
+plot(RGR~TOT_Ni,log="x",data=BurnToxF)
+BFg=nls(RGR~SSlogis(log10(TOT_Ni),Asym,xmid,scal),data=BurnToxF)
+summary(BFg)
+shapiro.test(resid(BFg)) #OK
+ANOVA_F(BFg,BurnToxF$RGR) #p = 0.002, r2 = 0.44
+
+BF = ECXX(BFg,10) #EC10 = 951 mg/kg
+for(i in 1:3){lines(BF$CImat[,1],BF$CImat[,(1+i)])} 
+```
+
+###Burntwood spiked - EC10 and LC50
+```{r Burntwood spiked}
+plot(Count/10~TOT_Ni,log="x",data=BurnToxS)
+BSsurv = glm(cbind(Count,Dead)~log10(TOT_Ni),data=BurnToxS,binomial)
+summary(BSsurv)
+shapiro.test(resid(BSsurv)) #OK
+1-BSsurv$deviance/BSsurv$null.deviance
+#p < 0.001, r2 < 0.38
+#No significant mortality in any treatments
+
+BSs = LCXX(BSsurv,50) #LC50 = 1720
+for(i in 1:3){lines(BSs$CImat[,1],BSs$CImat[,1+i])}
+
+plot(RGR~TOT_Ni,log="x",data=BurnToxS)
+BSg=nls(RGR~SSlogis(log10(TOT_Ni),Asym,xmid,scal),data=BurnToxS)
+summary(BSg)
+shapiro.test(resid(BSg)) #OK
+ANOVA_F(BSg,BurnToxS$RGR) #p < 0.001, r2 = 0.64
+
+BS = ECXX(BSg,10) #EC10 = 1010 mg/kg
+for(i in 1:3){lines(BS$CImat[,1],BS$CImat[,(1+i)])} 
+```
+
+###Raisin flume-aged - EC10 and LC50
+```{r Raisin flume-aged}
+plot(Count/10~TOT_Ni,log="x",data=RaisinToxF)
+RFsurv = glm(cbind(Count,Dead)~log10(TOT_Ni),data=RaisinToxF,binomial)
+summary(RFsurv)
+shapiro.test(resid(RFsurv)) #OK
+1-RFsurv$deviance/RFsurv$null.deviance
+#p < 0.001, r2 = 0.54
+
+RFs = LCXX(RFsurv,50) #LC50 = 504
+for(i in 1:3){lines(RFs$CImat[,1],RFs$CImat[,1+i])}
+
+plot(RGR~TOT_Ni,log="x",data=RaisinToxF)
+RFg=nls(RGR~SSlogis(log10(TOT_Ni),Asym,xmid,scal),data=RaisinToxF)
+summary(RFg)
+shapiro.test(resid(RFg)) #OK
+ANOVA_F(RFg,RaisinToxF$RGR) #p < 0.001, r2 = 0.85
+
+RF = ECXX(RFg,10) #EC10 = 242 mg/kg
+for(i in 1:3){lines(RF$CImat[,1],RF$CImat[,(1+i)])} 
+```
+
+###Raisin spiked - EC10 and LC50
+```{r Raisin spiked}
+plot(Count/10~TOT_Ni,log="x",data=RaisinToxS)
+RSsurv = glm(cbind(Count,Dead)~log10(TOT_Ni),data=RaisinToxS,binomial)
+summary(RSsurv)
+shapiro.test(resid(RSsurv)) #OK
+1-RSsurv$deviance/RSsurv$null.deviance
+#p < 0.001, r2 = 0.27
+
+RSs = LCXX(RSsurv,50) #LC50 = 803
+for(i in 1:3){lines(RSs$CImat[,1],RSs$CImat[,1+i])}
+
+plot(RGR~TOT_Ni,log="x",data=RaisinToxS)
+RSg=nls(RGR~SSlogis(log10(TOT_Ni),Asym,xmid,scal),data=RaisinToxS)
+summary(RSg)
+shapiro.test(resid(RSg)) #0.02
+ANOVA_F(RSg,RaisinToxS$RGR) #p < 0.001, r2 = 0.87
+
+RS = ECXX(RSg,10) #EC10 = 499 mg/kg
+for(i in 1:3){lines(RS$CImat[,1],RS$CImat[,(1+i)])} 
+```
+
+###Ni tissue response
+```{r Ni tissue}
+#Remove control treatment for regression models
+BurnTox.no0 <- subset(BurnTox,Nom_Ni!="0")
+RaisinTox.no0 <- subset(RaisinTox,Nom_Ni!="0")
+
+#Burntwood
+plot(Tissue_Ni~TOT_Ni,data=BurnTox,col=as.numeric(Treat),log="xy")
+Btiss = lm(log10(Tissue_Ni)~log10(TOT_Ni)*Treat,data=BurnTox.no0)
+summary.aov(Btiss) #Treatment effect p = 0.95
+shapiro.test(resid(Btiss))
+
+  #Simplified model without sediment prep. treatment
+Btiss1 <- lm(log10(Tissue_Ni)~log10(TOT_Ni),data=BurnTox.no0) 
+summary(Btiss1)
+abline(Btiss1)
+
+#Raisin
+plot(Tissue_Ni~TOT_Ni,data=RaisinTox,col=as.numeric(Treat),log="xy")
+Rtiss = lm(log10(Tissue_Ni)~log10(TOT_Ni)*Treat,data=RaisinTox.no0)
+summary.aov(Rtiss) #Treatment effect p = 0.72
+shapiro.test(resid(Rtiss)) #OK
+
+  #Simplified model without sediment prep. treatment
+Rtiss1 <- lm(log10(Tissue_Ni)~log10(TOT_Ni),data=RaisinTox.no0)
+summary(Rtiss1)
+abline(Rtiss1)
+```
+
+
+###Bioavailable Ni and growth response
+```{r Ni bioavail}
+#Burntwood
+plot(RGR~SEMAVSfOC2,data=BurnToxS,ylim=c(0,0.12),col="orangered3",las=1,log="x",xlim=c(1,1000))
+points(RGR~SEMAVSfOC2,data=BurnToxF,col="royalblue3",pch=15)
+
+#Burntwood F alone
+BFsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=BurnToxF)
+shapiro.test(resid(BFsao))
+summary(BFsao)
+ANOVA_F(BFsao,BurnToxF$RGR)
+BF.EC <- ECXX(BFsao,10)
+
+#Dow S alone
+BSsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=BurnToxS)
+shapiro.test(resid(BSsao))
+summary(BSsao)
+ANOVA_F(BSsao,BurnToxS$RGR)
+BS.EC <-ECXX(BSsao,10)
+
+#Combined model
+Bsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=BurnTox,control = list(maxiter = 500))
+shapiro.test(resid(Bsao))
+summary(Bsao)
+ANOVA_F(Bsao,BurnTox$RGR)
+B.EC <- ECXX(Bsao,10)
+
+#Raisin
+plot(RGR~SEMAVSfOC2,data=RaisinToxS,ylim=c(0,0.12),col="orangered3",las=1,log="x",xlim=c(1,1000))
+points(RGR~SEMAVSfOC2,data=RaisinToxF,col="royalblue3",pch=15)
+
+#Combined Raisin model
+Rsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=RaisinTox)
+shapiro.test(resid(Rsao))
+summary(Rsao)
+ANOVA_F(Rsao,RaisinTox$RGR)
+R.EC <- ECXX(Rsao,10)
+```
+
+#ZINC ANALYSES
+
+##Import data
+```{r Zn data import}
+ZnTox<-read.csv(file="Zn_Ha.csv")
+summary(ZnTox)
+ZnTox$Nom_Zn<-factor(ZnTox$Nom_Zn)
+
+ZnToxF<-subset(ZnTox,ZnTox$Treat=="F")
+ZnToxS<-subset(ZnTox,ZnTox$Treat=="S")
+```
+
+
+###Raisin (zinc) flume-aged - EC10 and LC50
+```{r Raisin Zn flume-aged}
+plot(Count/10~TOT_Zn,log="x",data=ZnToxF)
+ZFsurv = glm(cbind(Count,Dead)~log10(TOT_Zn),data=ZnToxF,binomial)
+summary(ZFsurv)
+shapiro.test(resid(ZFsurv)) #OK
+1-ZFsurv$deviance/ZFsurv$null.deviance
+#p = 0.11, r2 = 0.03
+  #Logistic model for survival is not significant
+
+plot(RGR~TOT_Zn,log="x",data=ZnToxF)
+ZFg=nls(RGR~SSlogis(log10(TOT_Zn),Asym,xmid,scal),data=ZnToxF)
+summary(ZFg)
+  #Cannot calculate logistic model, no reduction in growth rate
+```
+
+###Raisin (zinc) spiked - EC10 and LC50
+```{r Raisin Zn spiked}
+plot(Count/10~TOT_Zn,log="x",data=ZnToxS)
+ZSsurv = glm(cbind(Count,Dead)~log10(TOT_Zn),data=ZnToxS,binomial)
+summary(ZSsurv)
+shapiro.test(resid(ZSsurv)) #OK
+1-ZSsurv$deviance/ZSsurv$null.deviance
+#p = 0.22, r2 = 0.03
+  #Logistic model for survival is not significant
+
+plot(RGR~TOT_Zn,log="x",data=ZnToxS)
+ZSg=nls(RGR~SSlogis(log10(TOT_Zn),Asym,xmid,scal),data=ZnToxS)
+summary(ZSg)
+shapiro.test(resid(ZSg)) #OK
+ANOVA_F(ZSg,ZnToxS$RGR) #p = 0.01, r2 = 0.30
+
+ZS = ECXX(ZSg,10) #EC10 = 4260 mg/kg
+for(i in 1:3){lines(ZS$CImat[,1],ZS$CImat[,(1+i)])} 
+```
+
+###Zn tissue response
+```{r Zn tissue}
+plot(Tissue_Zn~TOT_Zn,data=ZnTox,log="xy",col=c("royalblue3","orangered3")[Treat])
+Ztiss = lm(log10(Tissue_Zn)~log10(TOT_Zn)*Treat,data=ZnTox)
+summary.aov(Ztiss)
+shapiro.test(resid(Ztiss))
+abline(Ztiss)
+plot(Ztiss,which=1) #Not linear
+
+Ztiss2 <- aov(log10(Tissue_Zn)~as.factor(Nom_Zn)*Treat,data=ZnTox)
+shapiro.test(resid(Ztiss2))
+summary(Ztiss2)
+TukeyHSD(Ztiss2)
+boxplot(log10(Tissue_Zn)~Treat,data=ZnTox)
+```
+
+
+###Bioavailable Ni and growth response
+```{r Ni bioavail}
+plot(RGR~SEMAVSfOC2,data=ZnTox,col=c("royalblue3","orangered3")[Treat],log="x")
+Zsao <- nls(RGR~SSlogis(log10(SEMAVSfOC2),Asym,xmid,scal),data=ZnTox)
+shapiro.test(resid(Zsao)) #OK p = 0.02
+summary(Zsao)
+ANOVA_F(Zsao,ZnTox$RGR) #p = 0.31
+  #Logistic model for growth and bioavailable Zn is not significant
+```
