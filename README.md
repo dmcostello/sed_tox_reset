@@ -43,7 +43,7 @@ __Ni_Ha.csv__
 |Tissue_Ni|*H. azteca* body Ni concentration|ng Ni/mg dw|
 
 __Zn_Ha.csv__
-Raisin sediment only
+(Raisin sediment only)
 
 |Parameter     |Definition   |Units  |
 | ------------- |-----------| -----|
