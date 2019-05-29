@@ -1,0 +1,856 @@
+---
+title: "Sediment chemistry stats"
+author: "Dave Costello"
+date: "5/29/2019"
+output: html_document
+---
+
+#COPPER ANALYSES
+
+##Import data
+```{r Cu data import}
+#Flux to surface water
+H2OCu <- read.csv(file="Cu_water.csv")
+H2OCu$Nom_Cu = factor(H2OCu$Nom_Cu)
+summary(H2OCu)
+H2O_Ocoee <- subset(H2OCu,SEDIMENT=="Ocoee")
+H2O_OcoeeS <- subset(H2O_Ocoee,TREATMENT=="S")
+H2O_OcoeeF <- subset(H2O_Ocoee,TREATMENT=="F")
+H2O_Dow <- subset(H2OCu,SEDIMENT=="Dow")
+H2O_Dow.no0 <- subset(H2O_Dow,Nom_Cu!="0")
+H2O_DowS <- subset(H2O_Dow,TREATMENT=="S")
+H2O_DowF <- subset(H2O_Dow,TREATMENT=="F")
+
+#Sediment chemistry
+Cuchem <- read.csv(file="Cu_sedchem.csv")
+Cuchem$DAY <- factor(Cuchem$DAY)
+Cuchem$CRY_Cu <- Cuchem$DITH_Cu - Cuchem$ASC_Cu
+Cuchem$CRY_Fe <- Cuchem$DITH_Fe - Cuchem$ASC_Fe
+summary(Cuchem)
+Ocoee <- subset(Cuchem,SEDIMENT=="Ocoee")
+Ocoee$TREATMENT <- Ocoee$TREATMENT[,drop=T]
+Ocoee.no0 <- subset(Ocoee,NOM_CONC>0)
+OcoeeF <- subset(Ocoee,TREATMENT=="F")
+OcoeeS <- subset(Ocoee,TREATMENT=="S")
+Dow <- subset(Cuchem,SEDIMENT=="Dow")
+Dow$TREATMENT <- Dow$TREATMENT[,drop=T]
+Dow.no0 <- subset(Dow,NOM_CONC>0)
+DowF <- subset(Dow,TREATMENT=="F")
+DowS <- subset(Dow,TREATMENT=="S")
+```
+
+###Overlying water flux
+```{r Cu flux}
+OFlux <- lm(log(Cu_flux)~(MEAN_TOT_Cu)*TREATMENT*log(TIME),data=H2O_Ocoee)
+shapiro.test(resid(OFlux)) #OK
+summary.aov(OFlux)
+par(mfrow=c(1,2))
+plot(Cu_flux~TIME,data=H2O_OcoeeS,log="xy",col=as.numeric(Nom_Cu))
+plot(Cu_flux~TIME,data=H2O_OcoeeF,log="xy",col=as.numeric(Nom_Cu))
+summary(lm(log(Cu_flux)~(MEAN_TOT_Cu)+TREATMENT+log(TIME),data=H2O_Ocoee))
+  exp(0.435) #S fluxes were 1.5x F fluxes
+
+DFlux <- lm(log(Cu_flux)~(MEAN_TOT_Cu)*log(TIME)*TREATMENT,data=H2O_Dow.noref)
+shapiro.test(resid(DFlux)) #OK (had to remove ref for normality)
+summary.aov(DFlux)
+par(mfrow=c(1,2))
+plot(Cu_flux~TIME,data=H2O_DowS,log="xy",col=as.numeric(Nom_Cu))
+plot(Cu_flux~TIME,data=H2O_DowF,log="xy",col=as.numeric(Nom_Cu))
+summary(lm(log(Cu_flux)~(MEAN_TOT_Cu)*TREATMENT*log(TIME),data=H2O_Dow))
+```
+
+###Sediment pH
+```{r Cu sed pH}
+OpH <- lm(SED_pH~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OpH)) #OK, p = 0.05
+summary.aov(OpH)
+par(mfrow=c(1,2))
+boxplot(SED_pH~NOM_CONC*DAY,data=OcoeeS,las=2,ylim=c(5,8))
+boxplot(SED_pH~NOM_CONC*DAY,data=OcoeeF,las=2,ylim=c(5,8))
+
+DpH <- lm(SED_pH~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Dow)
+shapiro.test(resid(DpH)) #OK
+summary.aov(DpH)
+par(mfrow=c(1,2))
+boxplot(SED_pH~NOM_CONC*DAY,data=DowS,las=2,ylim=c(5.5,7.5))
+boxplot(SED_pH~NOM_CONC*DAY,data=DowF,las=2,ylim=c(5.5,7.5))
+```
+
+Ocoee: pH was related to CuTOT in spiked sediment on day 10 only. Lower pH in higher spiked sediments (Cu x Day x Treat: p = 0.018). Increase in pH in all sediments after 38 days (including flume aged) (p < 0.001).
+
+Dow: Strong negative relationship with pH and CuTOT in spiked sediment only (Cu x Treat: p < 0.001). Relationship with CuTOT becomes less negative during aging (Cu x Day: p = 0.019). 
+
+###AVS
+```{r Cu sed AVS}
+OAVS <- lm(AVS/dw_corr~log(MEAN_TOT_Cu)*DAY*DEPTH*TREATMENT,data=Ocoee)
+shapiro.test(resid(OAVS)) #OK
+summary.aov(OAVS)
+boxplot(AVS~NOM_CONC*DAY,data=Ocoee,las=2)
+boxplot(AVS~NOM_CONC*DEPTH,data=Ocoee,las=2)
+boxplot(AVS~NOM_CONC*TREATMENT,data=Ocoee,las=2)
+boxplot(AVS~DEPTH*TREATMENT,data=Ocoee,las=2)
+
+DAVS <- lm(log(AVS/dw_corr)~log(MEAN_TOT_Cu)*DAY*DEPTH*TREATMENT,data=Dow)
+shapiro.test(resid(DAVS))
+summary.aov(DAVS)
+boxplot(AVS/dw_corr~NOM_CONC*TREATMENT,data=Dow,las=2,log="y")
+```
+
+Ocoee: Negative relationship between AVS and CuTOT (p < 0.001). Less AVS by day 38 (p = 0.010) and less AVS in freshly spiked treatments (p = 0.014). Much lower AVS in surface sediments than deep sediment (p < 0.001). The difference between surface and deep sediments was much greater in spiked treatments than flume aged (Depth x Treat: p = 0.027).
+
+Dow: Negative relationship between CuTOT and AVS (p < 0.001). No other differences.
+
+###Total Fe
+```{r Cu sed total Fe}
+OTFe <- lm(TOT_Fe~DAY*TREATMENT,data=Ocoee)
+shapiro.test(resid(OTFe))
+summary.aov(OTFe)
+boxplot(TOT_Fe~DAY,data=Ocoee)
+tapply(Ocoee$TOT_Fe,Ocoee$DAY,mean,na.rm=T)
+
+DTFe <- lm(log(TOT_Fe)~DAY*TREATMENT,data=Dow)
+shapiro.test(resid(DTFe))
+summary.aov(DTFe)
+```
+
+Ocoee: Decline in Fe through time (p = 0.003): d10 = 37 g/kg and d38 = 33 g/kg
+
+Dow: No change through time, no difference between treatments. Mean 5.3 g/kg
+
+###Amorphous Fe oxides
+```{r Cu sed HFO}
+OAFe <- lm(ASC_Fe/dw_corr~DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OAFe))
+summary.aov(OAFe)
+boxplot(ASC_Fe/dw_corr~DAY,data=Ocoee)
+tapply(Ocoee$ASC_Fe/Ocoee$dw_corr,Ocoee$DAY,mean,na.rm=T)/(tapply(Ocoee$TOT_Fe,Ocoee$DAY,mean,na.rm=T)*1000)*100
+
+DAFe <- lm(log(ASC_Fe/dw_corr)~DAY*DEPTH*TREATMENT,data=Dow)
+shapiro.test(resid(DAFe))
+summary.aov(DAFe)
+tapply(Dow$ASC_Fe/Dow$dw_corr,Dow$TREATMENT,mean,na.rm=T)/(tapply(Dow$TOT_Fe,Dow$TREATMENT,mean,na.rm=T)*1000)*100
+```
+
+Ocoee: Slight decline in HFO through time (p = 0.03) and no other differences. Decline is ~10% lower HFO at d38. HFO was 7% of total Fe, and decline seems to be simply due to decline in total Fe.
+
+Dow: No difference through time, depth, or treatment. HFO is 19% of total Fe.
+
+###Crystalline Fe oxides
+```{r Cu sed CFO}
+OCFe <- lm(log(CRY_Fe/dw_corr)~DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OCFe))
+summary.aov(OCFe)
+boxplot(log(CRY_Fe/dw_corr)~DAY*TREATMENT*DEPTH,data=Ocoee,las=3)
+tapply(Ocoee$CRY_Fe/Ocoee$dw_corr,Ocoee$DAY,mean,na.rm=T)/(tapply(Ocoee$TOT_Fe,Ocoee$DAY,mean,na.rm=T)*1000)*100
+
+DCFe <- lm(log(CRY_Fe/dw_corr)~DAY*TREATMENT*DEPTH,data=Dow)
+shapiro.test(resid(DCFe))
+summary.aov(DCFe)
+boxplot(log(CRY_Fe/dw_corr)~DEPTH*DAY,data=Dow,las=3)
+summary(lm(log(CRY_Fe/dw_corr)~DAY*DEPTH,data=Dow))
+  1/exp(0.17) #Decline is 15%
+tapply(Dow$CRY_Fe/Dow$dw_corr,Dow$TREATMENT,mean,na.rm=T)/(tapply(Dow$TOT_Fe,Dow$TREATMENT,mean,na.rm=T)*1000)*100
+```
+
+Ocoee: No change through time, no difference among treatments or depths. Cry Fe oxides were ~47% of total Fe.
+
+Dow: No difference among treatments. Weak decline in Cry Fe oxides in surface sediments only (DAY x DEPTH p = 0.04). Decline was ~15%. Cry Fe oxides were ~25% of total Fe.
+
+###Total Mn
+```{r Cu sed total Mn}
+OMn <- lm(log(TOT_Mn)~DAY*TREATMENT,data=Ocoee)
+shapiro.test(resid(OMn)) #OK
+summary.aov(OMn)
+boxplot(TOT_Mn~DAY*TREATMENT,data=Ocoee)
+
+DMn <- lm(log(TOT_Mn)~DAY*TREATMENT,data=Dow)
+shapiro.test(resid(DMn)) #OK
+summary.aov(DMn)
+summary(lm(log(TOT_Mn)~DAY,data=Dow))
+  1/exp(0.115) #11% decline through time
+boxplot(TOT_Mn~DAY*TREATMENT,data=Dow,log="y")
+```
+
+Ocoee: No difference through time or between treatments.
+
+Dow: No difference between treatments but ~11% decline through time.
+
+###Mn oxides
+```{r Cu sed CFO}
+OMnOx <- lm(log(DITH_Mn/dw_corr)~DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OMnOx))
+summary.aov(OMnOx)
+boxplot(log(DITH_Mn/dw_corr)~DAY*TREATMENT,data=Ocoee)
+summary(lm(log(DITH_Mn/dw_corr)~DAY+TREATMENT,data=Ocoee))
+  1/exp(0.119) #11% decline through time
+  1/exp(0.143) #14% less Mn oxide in spiked
+tapply(Ocoee$DITH_Mn/Ocoee$dw_corr,list(Ocoee$TREATMENT,Ocoee$DAY),mean,na.rm=T)/tapply(Ocoee$TOT_Mn,list(Ocoee$TREATMENT,Ocoee$DAY),mean,na.rm=T)*100
+
+DMnOx <- lm(log(DITH_Mn/dw_corr)~DAY*TREATMENT*DEPTH,data=Dow)
+shapiro.test(resid(DMnOx)) #OK p = 0.03
+summary.aov(DMnOx)
+boxplot(log(DITH_Mn/dw_corr)~DAY*TREATMENT,data=Dow)
+summary(lm(log(DITH_Mn/dw_corr)~DAY,data=Dow))
+  1/exp(0.078) #7% decline through time
+tapply(Dow$DITH_Mn/Dow$dw_corr,list(Dow$TREATMENT,Dow$DAY),mean,na.rm=T)/tapply(Dow$TOT_Mn,list(Dow$TREATMENT,Dow$DAY),mean,na.rm=T)*100
+```
+
+Ocoee: Time and treatment main effects significant (p = 0.02 and 0.008, respectively). Through time decline was 11% and spiked treatments were 14% lower. Mn was 44-63% Mn oxide minerals.
+
+Dow: Slight decline through time (-7%, p = 0.04), probably related to decline in total Mn. Mn was 40-68% Mn oxidizes.
+
+###Total Cu
+```{r total Cu}
+OTCu <- lm(log(TOT_Cu)~DAY*TREATMENT*DEPTH+as.factor(NOM_CONC),data=Ocoee)
+shapiro.test(resid(OTCu)) #OK
+summary.aov(OTCu)
+boxplot(log(TOT_Cu)~DEPTH*DAY*NOM_CONC,data=Ocoee,las=3)
+summary(OTCu)
+  #exp(2.93)/exp(3.17) = 0.79% less in surface
+  #Use surface conc to be conservative
+tapply(Ocoee$TOT_Cu,list(Ocoee$NOM_CONC,Ocoee$TREATMENT,Ocoee$DEPTH),mean,na.rm=T)
+OTCumin <- lm(log(TOT_Cu)~DAY*TREATMENT+as.factor(NOM_CONC),data=Ocoee)
+shapiro.test(resid(OTCumin))
+summary.aov(OTCumin)
+
+DTCu <- lm(log(TOT_Cu)~DAY*TREATMENT*DEPTH+as.factor(NOM_CONC),data=Dow)
+shapiro.test(resid(DTCu)) #OK
+summary.aov(DTCu)
+boxplot(log(TOT_Cu)~DEPTH*NOM_CONC,data=Dow,las=3)
+  #Surface are all lower than deep (except ref)
+tapply(Dow$TOT_Cu,list(Dow$NOM_CONC,Dow$TREATMENT,Dow$DEPTH),mean,na.rm=T)
+```
+
+Ocoee: all surface sediments were ~80% of the total Cu in deep sediment, but total Cu is the same in F and S treatments
+
+Dow: no difference among treatments, depths, or times
+
+###Porewater Cu
+```{r porewater Cu}
+OPCu <- lm(log(PORE_Cu)~log(MEAN_TOT_Cu)*DAY*TREATMENT,data=Ocoee.noref)
+shapiro.test(resid(OPCu)) #OK
+summary.aov(OPCu)
+boxplot(log(PORE_Cu)~DAY*TREATMENT,data=Ocoee,las=3)
+plot(PORE_Cu~MEAN_TOT_Cu,data=Ocoee,log="xy",col=as.numeric(TREATMENT),pch=as.numeric(DAY))
+
+  
+DPCu <- lm(log(PORE_Cu)~log(MEAN_TOT_Cu)*DAY*TREATMENT,data=Dow)
+shapiro.test(resid(DPCu)) #OK
+summary.aov(DPCu)
+boxplot(log(PORE_Cu)~DAY*TREATMENT,data=Dow,las=3)
+plot(PORE_Cu~MEAN_TOT_Cu,data=Dow,col=as.numeric(TREATMENT),pch=as.numeric(DAY),log="xy")
+```
+
+Porewater Cu did not differ by day in any experiments. Treatments differed for Dow only, no difference in Ocoee. Makes sense in light of tox results.
+
+###Cu Kd
+```{r Cu Kd}
+Ocoee.noref$KD <- log10(Ocoee.noref$MEAN_TOT_Cu/(Ocoee.noref$PORE_Cu/1000))
+boxplot(KD~TREATMENT*DAY,data=Ocoee.noref)
+
+OKD <- aov(KD~TREATMENT*DAY,data=Ocoee.noref)
+summary(OKD)
+sd(Ocoee.noref$KD,na.rm=T)
+plot(log10(PORE_Cu/1000)~log10(MEAN_TOT_Cu),data=Ocoee.noref)
+abline(-5.2,1)
+#No difference in KD across treatments or time for Ocoee. Mean KD is 5.16 ± 0.42
+
+Dow.noref$KD <- log10(Dow.noref$MEAN_TOT_Cu/(Dow.noref$PORE_Cu/1000))
+boxplot(KD~TREATMENT*DAY,data=Dow.noref)
+
+DKD <- aov(KD~TREATMENT*DAY,data=Dow.noref)
+summary(DKD)
+with(Dow.noref,tapply(KD,TREATMENT,mean,na.rm=T))
+#Marginal difference in KD between freshly spiked and aged Dow sediment (0.07). No difference through time (0.11). Aged KD 4.35 ± 0.64 and spiked KD 3.62 ± 0.84
+
+plot(log10(PORE_Cu/1000)~log10(MEAN_TOT_Cu),data=Dow.noref,col=as.numeric(TREATMENT))
+abline(-4.35,1)
+abline(-3.62,1,col="red")
+```
+
+##SEM Cu
+```{r SEM Cu}
+OSCu <- lm(log(SEM_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OSCu)) #OK 0.02
+summary.aov(OSCu)
+plot(SEM_Cu/dw_corr~MEAN_TOT_Cu,data=Ocoee,log="xy",col=as.numeric(TREATMENT),pch=as.numeric(DAY))
+abline(0,1)
+
+DSCu <- lm(log(SEM_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Dow.noref)
+shapiro.test(resid(DSCu)) #OK
+summary.aov(DSCu)
+summary(DSCu)
+plot(SEM_Cu/dw_corr~MEAN_TOT_Cu,data=Dow.noref,log="xy",col=as.numeric(TREATMENT))
+```
+
+Ocoee: No difference in SEM through time or between treatments
+
+Dow: Spiked treatments had more Cu as SEM than flume-aged (TREAT p < 0.001)
+
+###HFO Cu
+```{r HFO Cu}
+OACu <- lm(log(ASC_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OACu)) #OK
+summary.aov(OACu)
+summary(lm(log(ASC_Cu/dw_corr)~log(MEAN_TOT_Cu)+TREATMENT,data=Ocoee))
+  exp(0.468)  #Ocoee S is 1.6x (Ocoee F is 63%) higher than F 
+plot(ASC_Cu/dw_corr~MEAN_TOT_Cu,data=Ocoee,log="xy",col=as.numeric(TREATMENT),pch=as.numeric(DAY))
+  tapply(Ocoee$ASC_Cu/Ocoee$dw_corr,list(Ocoee$TREAT,Ocoee$NOM_CONC),mean)/tapply(Ocoee$MEAN_TOT_Cu,list(Ocoee$TREAT,Ocoee$NOM_CONC),mean)*100
+  #ASC/TOTAL F = 0.06-0.1%; S = 0.1-0.2%
+with(Ocoee,tapply(ASC_Cu/dw_corr,list(TREATMENT,NOM_CONC),mean))
+
+DACu <- lm(log(ASC_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Dow)
+shapiro.test(resid(DACu)) #OK
+summary.aov(DACu)
+summary(lm(log(ASC_Cu/dw_corr)~log(MEAN_TOT_Cu)+DAY+TREATMENT,data=Dow))
+plot(ASC_Cu/dw_corr~MEAN_TOT_Cu,data=Dow,log="xy",col=as.numeric(TREATMENT),pch=as.numeric(DAY))
+  1/exp(0.547)  #Dow d38 is 58% of d10 
+  1/exp(0.838)  #Dow F is 43% of S 
+  tapply(Dow$ASC_Cu/Dow$dw_corr,list(Dow$TREAT,Dow$NOM_CONC),mean)/tapply(Dow$MEAN_TOT_Cu,list(Dow$TREAT,Dow$NOM_CONC),mean)*100
+  #ASC/TOTAL F = 0.04-0.7%; S = 0.7-1.9%
+  #ASC/TOTAL d10 = 0.8-1.4%; d38 = 0.5-1.2%
+```
+
+Ocoee: Amorphous Fe bound Cu was low (<1%) and differed between F and S (p = 0.04). More Cu bound to amorphous Fe in spiked treatments (0.1-0.2%) compared to aged (0.06-0.1%). Aged is 63% of freshly spiked.
+
+Dow: Amorphous Fe bound Cu was low (<2%) and differed between treatments (p < 0.001) and times (p = 0.02). More amorphous Fe bound Cu in spiked treatments (0.7-1.9%) compared to aged (0.4-0.7%). More Cu on day 10 (0.8-1.4%) than day 38 (0.5-1.2%) Aged is 43% of spiked, Day 38 is 58% of day 10.
+
+###CFO Cu
+```{r CFO Cu}
+OCCu <- lm(log(CRY_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Ocoee)
+shapiro.test(resid(OCCu)) #OK
+summary.aov(OCCu)
+boxplot(log(CRY_Cu/dw_corr)~DEPTH*DAY*TREATMENT,data=Ocoee,las=3)
+TukeyHSD(aov(log(CRY_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Ocoee),which="DAY:TREATMENT:DEPTH")
+  tapply(Ocoee$CRY_Cu/Ocoee$dw_corr,list(Ocoee$TREAT,Ocoee$NOM_CONC),mean)/tapply(Ocoee$MEAN_TOT_Cu,list(Ocoee$TREAT,Ocoee$NOM_CONC),mean)*100
+  #CRY/TOTAL F = 0.8-1.4%; S = 1.2-2.4%
+
+DCCu <- lm(log(CRY_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*TREATMENT*DEPTH,data=Dow)
+shapiro.test(resid(DCCu)) #OK
+summary.aov(DCCu)
+boxplot(log(CRY_Cu/dw_corr)~DEPTH*DAY*TREATMENT,data=Dow,las=3)
+boxplot(log(CRY_Cu/dw_corr)~TREATMENT,data=Dow,las=3)
+TukeyHSD(aov(log(CRY_Cu/dw_corr)~log(MEAN_TOT_Cu)*DAY*DEPTH*TREATMENT,data=Dow))
+  tapply(Dow$CRY_Cu/Dow$dw_corr,Dow$NOM_CONC,mean)/tapply(Dow$MEAN_TOT_Cu,Dow$NOM_CONC,mean)*100
+  #CRY/TOTAL = 3-11%
+```
+
+Ocoee: Crystalline bound Cu was slightly greater than amorphous (0.8-2.4%). More cry bound Cu in S than F (p = 0.02) and a time x treatment x depth interaction (p = 0.003). Spiked sediments had 1.2-2.4% Cu bound to crystalline but aged were 0.8-1.4%. Spiked sediments declined through time in the surface only, but aged did not change at all.
+
+Dow: Crystalline Fe bound Cu was much greater than amorph and Ocoee (3-11%). Treatments differed (p = 0.005) and weak day x depth x treatment interaction (p = 0.01). Spiked sediments had more Cu CFO than aged, but at highest Cu very similar. Spiked didn't change through time but aged was low in d10 deep sediments and increased by 38d.
+
+#NICKEL ANALYSES
+
+##Import data
+```{r Ni data import}
+#Flux to surface water
+H2ONi <- read.csv(file="EMBOSSNi_water_Tier2.csv")
+H2ONi$NOM_CONC = factor(H2ONi$NOM_CONC)
+H2O_Burn <- subset(H2ONi,SED=="Burn")
+H2O_Burn$NOM_CONC <- H2O_Burn$NOM_CONC[,drop=T]
+H2O_Burn.no0 <- subset(H2O_Burn,NOM_CONC!="0")
+H2O_BurnS <- subset(H2O_Burn,TREATMENT=="S")
+H2O_BurnF <- subset(H2O_Burn,TREATMENT=="F")
+H2O_Raisin <- subset(H2ONi,SED=="Raisin")
+H2O_Raisin.no0 <- subset(H2O_Raisin,NOM_CONC!="0")
+H2O_Raisin$NOM_CONC <- H2O_Raisin$NOM_CONC[,drop=T]
+H2O_RaisinS <- subset(H2O_Raisin,TREATMENT=="S")
+
+#Sediment chemistry
+Nichem = read.csv(file="Ni_sedchem.csv")
+Nichem$DAY = factor(Nichem$DAY)
+Nichem$CRY_Ni = Nichem$DITH_Ni-Nichem$ASC_Ni
+Nichem$CRY_Fe = Nichem$DITH_Fe-Nichem$ASC_Fe
+Nichem$CRY_Ni2 = Nichem$CRY_Ni
+Nichem$CRY_Ni2[Nichem$CRY_Ni2 <= 0] = NA
+Burn = subset(Nichem,Nichem$SED=="Burn")
+Burn$DAY = as.factor(Burn$DAY)
+Burn$TREATMENT = Burn$TREATMENT[,drop=T]
+BurnF = subset(Burn,Burn$TREATMENT=="F")
+BurnS = subset(Burn,Burn$TREATMENT=="S")
+Burn.no0 = subset(Burn,Burn$NOM_CONC!="0")
+Raisin = subset(Nichem,Nichem$SED=="Raisin")
+Raisin$DAY = as.factor(Raisin$DAY)
+Raisin$TREATMENT = Raisin$TREATMENT[,drop=T]
+RaisinF = subset(Raisin,Raisin$TREATMENT=="F")
+RaisinS = subset(Raisin,Raisin$TREATMENT=="S")
+Raisin.no0 = subset(Raisin,Raisin$NOM_CONC!="0")
+```
+
+###Overlying water flux
+```{r Ni flux}
+RFlux <- lm(log(Ni_flux)~log(MEAN_TOT_Ni)*TREATMENT*log(DAY),data=H2O_Raisin.no0)
+shapiro.test(resid(RFlux)) #OK
+summary.aov(RFlux)
+par(mfrow=c(1,2))
+plot(Ni_flux~DAY,data=H2O_RaisinS,log="xy",col=c("black","blue","goldenrod","orangered","firebrick")[NOM_CONC])
+plot(Ni_flux~DAY,data=H2O_RaisinF,log="xy",col=c("black","blue","goldenrod","orangered","firebrick")[NOM_CONC])
+summary(lm(log(Ni_flux)~log(MEAN_TOT_Ni)+log(DAY),data=H2O_Raisin.no0))
+1/exp(abs(log(35)*-0.1824)) #% of flux by day 35
+
+BFlux <- lm(log(Ni_flux)~log(MEAN_TOT_Ni)*log(DAY)*TREATMENT,data=H2O_Burn)
+shapiro.test(resid(BFlux)) #OK
+summary.aov(BFlux)
+par(mfrow=c(1,2))
+plot(Ni_flux~DAY,data=H2O_BurnS,log="xy",col=c("black","blue","goldenrod","orangered","firebrick")[NOM_CONC])
+plot(Ni_flux~DAY,data=H2O_BurnF,log="xy",col=c("black","blue","goldenrod","orangered","firebrick")[NOM_CONC])
+```
+
+Raisin: Ni flux was positively related to total Ni, and declined through time (when excluding reference seds). At day 35, the flux of Ni was 52% of the flux at the start of the experiment. No difference between treatments. Greatest flux observed in Raisin treatments.
+
+Burntwood: Ni flux positively related to Ni but no change in flux through time and no difference among treatments. Weak evidence of decline in flux through time in S only, but p = 0.094 (prob a stretch).
+
+###Sediment pH
+```{r Ni sed pH}
+RmodpH <- aov(SED_pH~MEAN_TOT_Ni*DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodpH)) #OK p = 0.02
+summary(RmodpH)
+summary(lm(SED_pH~MEAN_TOT_Ni*DAY+TREATMENT+DEPTH+MEAN_TOT_Ni:TREATMENT,data=Raisin))
+plot(SED_pH~MEAN_TOT_Ni,data=Raisin,col=c("blue","red")[TREATMENT],pch=c(1,17)[DAY])
+boxplot(SED_pH~DEPTH,data=Raisin)
+
+BmodpH <- aov(SED_pH~MEAN_TOT_Ni*DAY*DEPTH*TREATMENT,data=Burn)
+shapiro.test(resid(BmodpH)) #OK
+summary(BmodpH)
+summary(lm(SED_pH~MEAN_TOT_Ni*TREATMENT+DAY+DEPTH,data=Burn))
+boxplot(SED_pH~DAY*DEPTH,data=Burn)
+plot(SED_pH~MEAN_TOT_Ni,data=Burn,col=c("blue","red")[TREATMENT])
+```
+
+Raisin: Lots of things significant. Deep sediment has lower pH (~7) than surface pH (~7.3). F treatment had higher pH than S. Positive correlation with Ni on day 35 and in S treatments (additive, so strongest correlation in S 35). All pH 6.8-7.5.
+
+Burntwood: Lots significant also. F > S, surface > deep, and 7 > 35. Positive correlation with total Ni in F but negative in S. NOTE: No S 35 pH since probe was malfunctioning. All pH 6.9-7.5.
+
+###AVS
+```{r Ni sed AVS}
+RmodAVS <- aov(log(AVS/dw_corr)~log(MEAN_TOT_Ni)*DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodAVS)) #OK
+summary(RmodAVS)
+plot(AVS~MEAN_TOT_Ni,data=Raisin,log="xy",col=c("blue","red")[TREATMENT])
+summary(lm(log(AVS/dw_corr)~log(MEAN_TOT_Ni)+TREATMENT,data=Raisin))
+1/exp(0.235)
+
+FmodAVS <- aov(log(AVS/dw_corr)~log(MEAN_TOT_Ni)*DAY*DEPTH,data=Field)
+shapiro.test(resid(FmodAVS)) #OK
+summary(FmodAVS)
+plot(AVS~MEAN_TOT_Ni,data=Field) #No neg correlation, use Ni as block
+FmodAVS2 <- aov(log(AVS/dw_corr)~DAY*DEPTH+as.factor(NOM_CONC),data=Field)
+shapiro.test(resid(FmodAVS2)) #OK
+summary(FmodAVS2)
+boxplot(AVS~DEPTH*DAY,data=Field,log="y")
+```
+
+Raisin: Negative correlation with total Ni and lower AVS in S treatments. S are ~21% lower than F.
+
+Burntwood: All AVS concentrations low (< 0.3 µmol/g for n = 5).
+
+###Total Fe
+```{r Ni sed total Fe}
+RmodFe = aov(TOT_Fe~DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodFe))
+summary(RmodFe)
+boxplot(TOT_Fe~DAY*DEPTH,data=Raisin,las=3)
+boxplot(TOT_Fe~TREATMENT,data=Raisin)
+with(Raisin,tapply(TOT_Fe,list(DAY,DEPTH),mean))
+with(Raisin,tapply(TOT_Fe,TREATMENT,mean))
+
+BmodFe = aov(TOT_Fe~DAY*DEPTH*TREATMENT,data=Burn)
+shapiro.test(resid(BmodFe)) #OK
+summary(BmodFe)
+boxplot(TOT_Fe~TREATMENT*DAY*DEPTH,data=Burn,las=2)
+TukeyHSD(BmodFe,which="DAY:DEPTH:TREATMENT")
+```
+
+Raisin: Surface on day 7 (14 g/kg) was higher than all other times and depths (~12 g/kg). Spiked had more Fe (13 g/kg) than flume-aged (12 g/kg).
+
+Burntwood: Surface S on day 7 had more Fe than all other times, depths, and treatments (~48 g/kg). All others had ~45 g/kg Fe. 
+
+###Amorphous Fe oxides
+```{r Ni sed HFO}
+RmodAFe <- aov(ASC_Fe/dw_corr~DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodAFe)) #OK
+summary(RmodAFe)
+with(Raisin,tapply(ASC_Fe/dw_corr,NOM_CONC,mean))/(with(Raisin,tapply(TOT_Fe,NOM_CONC,mean))*1000)
+sd(with(Raisin,ASC_Fe/dw_corr/(TOT_Fe*1000)))
+
+BmodAFe <- aov(ASC_Fe/dw_corr~DAY*DEPTH*TREATMENT,data=Burn)
+shapiro.test(resid(BmodAFe)) #OK
+summary(BmodAFe)
+with(Burn,tapply(ASC_Fe/dw_corr,NOM_CONC,mean))/(with(Burn,tapply(TOT_Fe,NOM_CONC,mean,na.rm=T))*1000)
+sd(with(Burn,ASC_Fe/dw_corr/(TOT_Fe*1000)),na.rm=T)
+```
+
+Raisin & Burntwood: No differences through time, depth, or between treatments. HFO was 45-49% of total Fe for Raisin and 6-7% for Burntwood.
+
+###Crystalline Fe oxides
+```{r Ni sed CFO}
+RmodCFe <- aov(CRY_Fe/dw_corr~DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodCFe)) #OK
+summary(RmodCFe)
+boxplot(CRY_Fe/dw_corr~DAY*DEPTH*TREATMENT,data=Raisin,las=2)
+TukeyHSD(RmodCFe,which="DAY:DEPTH:TREATMENT")
+with(Raisin,tapply(CRY_Fe/dw_corr,NOM_CONC,mean,na.rm=T))/(with(Raisin,tapply(TOT_Fe,NOM_CONC,mean))*1000)
+sd(with(Raisin,CRY_Fe/dw_corr/(TOT_Fe*1000)),na.rm=T)
+
+BmodCFe <- aov(CRY_Fe/dw_corr~DAY*DEPTH*TREATMENT,data=Burn)
+shapiro.test(resid(BmodCFe)) #OK
+summary(BmodCFe)
+boxplot(CRY_Fe/dw_corr~DAY*TREATMENT,data=Burn)
+with(Burn,tapply(CRY_Fe/dw_corr,list(DAY,TREATMENT),mean))/(with(Burn,tapply(TOT_Fe,list(DAY,TREATMENT),mean,na.rm=T))*1000)
+sd(with(Burn,CRY_Fe/dw_corr/(TOT_Fe*1000)),na.rm=T)
+```
+
+Raisin: On day 7 in F treatments, surface >> deep but no differences among S treatments or between depths for F on day 35. Cry Fe was 24-28% of total Fe.
+
+Burntwood: Cry Fe increased through time and was greater in S than F treatments. Cry Fe was 23-25% of total Fe for F treatments and 24-27% for S.
+
+###Total Mn
+```{r Ni sed total Mn}
+RmodMn <- aov(TOT_Mn~DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodMn)) #OK
+summary(RmodMn)
+boxplot(TOT_Mn~DAY*TREATMENT,data=Raisin,las=2)
+sd(Raisin$TOT_Mn)
+
+BmodMn <- aov(TOT_Mn~DAY*DEPTH*TREATMENT,data=Burn)
+shapiro.test(resid(BmodMn)) #OK
+summary(BmodMn)
+boxplot(TOT_Mn~DAY*DEPTH,data=Burn,las=2)
+TukeyHSD(BmodMn,which="DAY:DEPTH")
+sd(Burn$TOT_Mn)
+```
+
+Raisin: Slightly higher total Mn in S treatments and on day 35. Range was 700-850 mg/kg (F @ d7 to S @ d35).
+
+Burntwood: Total Mn increased through time only in the sediment surface. Range was 930-975 mg/kg.
+
+###Mn oxides
+```{r Ni sed CFO}
+RmodMnO <- aov(DITH_Mn/dw_corr~DAY*DEPTH*TREATMENT,data=Raisin)
+shapiro.test(resid(RmodMnO)) #OK
+summary(RmodMnO)
+boxplot(DITH_Mn/dw_corr~DAY*DEPTH*TREATMENT,data=Raisin,las=2)
+TukeyHSD(RmodMnO)
+with(Raisin,tapply(DITH_Mn/dw_corr,list(TREATMENT,DEPTH),mean))/with(Raisin,tapply(TOT_Mn,list(TREATMENT,DEPTH),mean,na.rm=T))
+sd(Raisin$DITH_Mn/Raisin$dw_corr/Raisin$TOT_Mn)
+
+BmodMnO <- aov(DITH_Mn/dw_corr~DAY*DEPTH*TREATMENT,data=Burn)
+shapiro.test(resid(BmodMnO)) #OK
+summary(BmodMnO)
+with(Burn,tapply(DITH_Mn/dw_corr,list(TREATMENT,DEPTH),mean))/with(Burn,tapply(TOT_Mn,list(TREATMENT,DEPTH),mean,na.rm=T))
+sd(Burn$DITH_Mn/Burn$dw_corr/Burn$TOT_Mn)
+```
+
+Raisin: Three-way interaction. In S treatment, surface was consistently lower. In F sediment, surface sediment was lower only on d 35. Mn oxides were 88-100% of total Mn.
+
+Burntwood: No differences among depths, time, or treatments. Mn oxides were 66-68% of total Mn.
+
+###Total Ni
+```{r total Ni}
+RmodTN = aov(log(TOT_Ni)~DAY*TREATMENT*DEPTH+log(NOM_CONC+1),data=Raisin)
+summary(RmodTN)
+shapiro.test(resid(RmodTN))
+
+BmodTN = aov(log(TOT_Ni)~DAY*TREATMENT*DEPTH+log(NOM_CONC+1),data=Burn.no0)
+summary(BmodTN)
+shapiro.test(resid(BmodTN)) 
+boxplot(TOT_Ni~TREATMENT*factor(NOM_CONC),data=Burn.no0,log="y")
+with(BurnS,tapply(TOT_Ni,NOM_CONC,mean))/with(BurnF,tapply(TOT_Ni,NOM_CONC,mean))
+```
+
+RAISIN: No difference in total Ni concentrations between freshly-spiked and flume-aged sediments, no difference between depths, and no change through time in either. Use the mean of day 7 and 35 for all dose-response calculations.
+
+BURNTWOOD: F and S differ (spiked higher) and F sediments declined in total Ni through time but S was stable. S surface declined slightly but F was stable at depth. Still use mean of day 7 and 35 for dose-response, but consider using day 35 for Burntwood F to be conservative.
+
+###Porewater Ni
+```{r porewater Ni}
+RmodPN = aov(log(PORE_Ni)~log(MEAN_TOT_Ni)*DAY*TREATMENT,data=Raisin.no0)
+shapiro.test(resid(RmodPN)) #OK
+summary(RmodPN)
+summary(lm(log(PORE_Ni)~log(MEAN_TOT_Ni)+DAY,data=Raisin.no0))
+plot(PORE_Ni~MEAN_TOT_Ni,data=Raisin,log="xy",col=c("blue","red")[DAY])
+#d10 = blue, d38 = red
+exp(-1.365-9.095+log(100)*2.16)/exp(-9.095+log(100)*2.16)
+exp(-1.365) #25% lost
+log10(with(Raisin.no0,tapply(MEAN_TOT_Ni,list(TREATMENT,DAY,NOM_CONC),mean,na.rm=T))/with(Raisin.no0,tapply(PORE_Ni,list(TREATMENT,DAY,NOM_CONC),mean,na.rm=T))*1000)
+mean(log10(with(Raisin.no0[Raisin.no0$DAY=="35",],MEAN_TOT_Ni/PORE_Ni*1000)),na.rm=T)
+
+
+BmodPN = aov(log(PORE_Ni)~log(MEAN_TOT_Ni)*DAY*TREATMENT,data=Burn)
+shapiro.test(resid(BmodPN))
+summary(BmodPN)
+plot(PORE_Ni~MEAN_TOT_Ni,data=Burn,log="xy",col=c("blue","red")[TREATMENT])
+summary(lm(log(PORE_Ni)~log(MEAN_TOT_Ni)+DAY*TREATMENT,data=Burn))
+TukeyHSD(BmodPN,which="DAY:TREATMENT")
+log10(with(Burn,tapply(MEAN_TOT_Ni,list(TREATMENT,DAY),mean,na.rm=T))/with(Burn,tapply(PORE_Ni,list(TREATMENT,DAY),mean,na.rm=T))*1000)
+mean(log10(with(BurnS[BurnS$DAY=="7",],MEAN_TOT_Ni/PORE_Ni*1000)),na.rm=T)
+```
+
+Raisin: All sediments had a higher porewater Ni initially (relative to total Ni) and it declined 25% by day 35. KD = 2.7-3.5 (2.7 only for S7, rest exactly 3.5)
+
+Burntwood: S has a greater porewater than F and the difference was largest on d7. Decline in porewater by ~60% in S by day 35. KD = 3.0-3.7 (F higher)
+
+###Ni Kd
+```{r Ni Kd}
+Burn.no0$KD <- log10(Burn.no0$MEAN_TOT_Ni/(Burn.no0$PORE_Ni/1000))
+boxplot(KD~TREATMENT*DAY,data=Burn.no0)
+
+BKDmod <- aov(KD~TREATMENT*DAY,data=Burn.no0)
+summary(BKDmod)
+with(Burn.no0,tapply(KD,list(TREATMENT,DAY),mean,na.rm=T))
+plot(log10(PORE_Cu/1000)~log10(MEAN_TOT_Cu),data=Ocoee.noref)
+abline(-5.2,1)
+#No difference in KD across treatments or time for Ocoee. Mean KD is 5.16 ± 0.42
+
+Raisin.no0$KD <- log10(Raisin.no0$MEAN_TOT_Ni/(Raisin.no0$PORE_Ni/1000))
+boxplot(KD~TREATMENT*DAY,data=Raisin.no0)
+
+RKDmod <- aov(KD~TREATMENT*DAY,data=Raisin.no0)
+summary(RKDmod)
+sd(Raisin.no0$KD,na.rm=T)
+#No difference in KD across treatments or time. Mean KD is 3.93 ± 0.71
+
+plot(log10(PORE_Cu/1000)~log10(MEAN_TOT_Cu),data=Dow.noref,col=as.numeric(TREATMENT))
+abline(-4.35,1)
+abline(-3.62,1,col="red")
+```
+
+##SEM Ni
+```{r SEM Ni}
+RmodSN = aov(log(SEM_Ni/dw_corr)~log(MEAN_TOT_Ni)*DAY*TREATMENT*DEPTH,data=Raisin.no0)
+shapiro.test(resid(RmodSN)) #Not so good p = 0.007), no apparent reason 
+summary(RmodSN)
+plot(SEM_Ni/dw_corr~MEAN_TOT_Ni,data=Raisin.no0,log="xy",col=c("blue","red")[TREATMENT])
+with(Raisin,tapply(SEM_Ni/dw_corr,list(TREATMENT,NOM_CONC),mean,na.rm=T))/with(Raisin,tapply(MEAN_TOT_Ni,list(TREATMENT,NOM_CONC),mean,na.rm=T))
+
+BmodSN = aov(log(SEM_Ni/dw_corr)~log(MEAN_TOT_Ni)*DAY*TREATMENT*DEPTH,data=Burn.no0)
+shapiro.test(resid(BmodSN)) #OK p = 0.08
+summary(BmodSN)
+plot(SEM_Ni/dw_corr~MEAN_TOT_Ni,data=Burn,log="xy",col=c("blue","red")[TREATMENT])
+summary(lm(log(SEM_Ni/dw_corr)~log(MEAN_TOT_Ni)+DAY+TREATMENT+DEPTH+DAY:TREATMENT,data=Burn.no0))
+boxplot(SEM_Ni/dw_corr~TREATMENT*DAY,data=Burn.no0,log="y")
+TukeyHSD(BmodSN,which=("DAY:TREATMENT"))
+with(Burn,tapply(SEM_Ni/dw_corr,list(DEPTH,DAY,TREATMENT,NOM_CONC),mean,na.rm=T))/with(Burn,tapply(MEAN_TOT_Ni,list(DEPTH,DAY,TREATMENT,NOM_CONC),mean,na.rm=T))
+```
+
+Raisin: SEM Ni was no different among any treatments. SEM Ni is 49-115% of total Ni, with a larger proportion of Ni as SEM in low Ni sediments.
+
+Burntwood: SEM Ni differed among treatments, depths, and days. Interaction between treatment and depth as S35 was lower than all other treatments. Surface had less SEM Ni than deep across all treatments and times. SEM Ni is 67-96% of total Ni.
+
+###HFO Ni
+```{r HFO Ni}
+RmodAN = aov(log(ASC_Ni/dw_corr)~log(MEAN_TOT_Ni)*DAY*TREATMENT*DEPTH,data=Raisin)
+shapiro.test(resid(RmodAN)) #OK 0.05
+summary(RmodAN)
+plot(ASC_Ni/dw_corr~MEAN_TOT_Ni,data=Raisin,log="xy",col=c("blue","red")[DAY])
+with(Raisin,tapply(ASC_Ni/dw_corr,NOM_CONC,mean,na.rm=T))/with(Raisin,tapply(MEAN_TOT_Ni,NOM_CONC,mean,na.rm=T))
+
+BmodAN = aov(log(ASC_Ni/dw_corr)~log(MEAN_TOT_Ni)*DAY*TREATMENT*DEPTH,data=Burn.no0)
+shapiro.test(resid(BmodAN)) #OK
+summary(BmodAN)
+plot(ASC_Ni/dw_corr~MEAN_TOT_Ni,data=Burn.no0,log="xy",col=c("blue","red")[TREATMENT],pch=c(1,19)[DAY]) #Ref looks odd, so removed
+summary(lm(log(ASC_Ni/dw_corr)~log(MEAN_TOT_Ni)*DAY+TREATMENT+DAY:TREATMENT,data=Burn.no0))
+TukeyHSD(BmodAN,which="DAY:TREATMENT")
+with(Burn,tapply(ASC_Ni/dw_corr,list(NOM_CONC,DAY,TREATMENT),mean,na.rm=T))/with(Burn,tapply(MEAN_TOT_Ni,list(NOM_CONC,DAY,TREATMENT),mean,na.rm=T))
+```
+
+Raisin: No significant difference between F and S, between depths, and no change through time. Ascorbate Ni was 35-74% of total Ni (increases with total Ni)
+
+Burntwood: 7 S is different than all others. S7 declines through time, but the decline is greatest in low Ni sediments. 25-54% of total Ni is as ASC Ni (F = 26-48%, S = 25-54%)
+
+###CFO Ni
+```{r CFO Ni}
+RmodCN = aov(log(CRY_Ni2/dw_corr)~log(MEAN_TOT_Ni)*DAY*DEPTH*TREATMENT,data=Raisin.no0)
+shapiro.test(resid(RmodCN)) #OK p = 0.013
+summary(RmodCN)
+plot(CRY_Ni2~MEAN_TOT_Ni,data=Raisin,log="xy",col=c("blue","red")[DEPTH])
+boxplot(CRY_Ni2/dw_corr~DEPTH,data=Raisin.no0,log="y")
+summary(lm(log(CRY_Ni2/dw_corr)~log(MEAN_TOT_Ni)+DEPTH,data=Raisin.no0))
+1/exp(0.767) #Deep = 46% of surface
+with(Raisin,tapply(CRY_Ni2/dw_corr,list(NOM_CONC,DEPTH),mean,na.rm=T))/with(Raisin,tapply(MEAN_TOT_Ni,list(NOM_CONC,DEPTH),mean,na.rm=T))
+
+BmodCN = aov(log(CRY_Ni/dw_corr)~log(MEAN_TOT_Ni)*DAY*DEPTH*TREATMENT,data=Burn.no0)
+shapiro.test(resid(BmodCN)) #OK
+summary(BmodCN)
+plot(CRY_Ni~MEAN_TOT_Ni,data=Burn,log="xy",col=c("blue","red")[TREATMENT])
+summary(lm(log(CRY_Ni/dw_corr)~log(MEAN_TOT_Ni)*DEPTH,data=Burn.no0))
+with(Burn,tapply(CRY_Ni/dw_corr,list(NOM_CONC,DEPTH),mean,na.rm=T))/with(Burn,tapply(MEAN_TOT_Ni,list(NOM_CONC,DEPTH),mean,na.rm=T))
+```
+
+Raisin: Surface had slightly more cry. Ni than deep sediments. Deep was 46% of surface concentrations. No difference among treatments or time. Surface 7-12% of Ni was cry, deep 2-7% was cry.
+
+Burntwood: Surface had more Ni cry than deep when total Ni was low. Surface 38-32% was cry. and deep 32-34% was cry.
+
+#ZINC ANALYSES
+
+##Import data
+```{r Zn data import}
+#Sediment chemistry
+Znchem <- read.csv(file="Zn_sedchem.csv")
+Znchem$DAY = factor(Znchem$DAY)
+Znchem$CRY_Zn = Znchem$DITH_Zn-Znchem$ASC_Zn
+Znchem$CRY_Fe = Znchem$DITH_Fe-Znchem$ASC_Fe
+RFchem <- subset(Znchem,TREATMENT=="F")
+RSchem <- subset(Znchem,TREATMENT=="S")
+Znchem.no0 <- subset(Znchem,NOM_CONC>40)
+```
+
+###Overlying water flux
+```{r Zn flux}
+plot(H2O_Zn~MEAN_TOT_Zn,data=Znchem,log="xy")
+H2OZn <- aov(log(H2O_Zn)~log(MEAN_TOT_Zn)*TREATMENT*DAY,data=Znchem)
+shapiro.test(resid(H2OZn)) # p = 0.01 (OK)
+summary(H2OZn)
+boxplot(H2O_Zn~TREATMENT*DAY,data=Znchem,log="y")
+summary.lm(H2OZn)
+with(Znchem,tapply(H2O_Zn,list(TREATMENT,DAY),median,na.rm=T))
+```
+
+Positive relationship between overlying water Zn and sediment Zn (p = 0.046). Interaction between sediment prep and time, where F < S on day 0 only. 28 day > day 0 (accumulation of Zn and no flushing?). Median Zn conc = 170 µg/L.
+
+###Sediment pH
+```{r Zn sed pH}
+pHZn <- aov(SED_pH~log(MEAN_TOT_Zn)*DEPTH*TREATMENT,data=Znchem)
+shapiro.test(resid(pHZn)) #OK
+summary(pHZn)
+plot(SED_pH~MEAN_TOT_Zn,data=Znchem,log="x")
+boxplot(SED_pH~DEPTH*TREATMENT,data=Znchem)
+TukeyHSD(pHZn,which="DEPTH:TREATMENT")
+summary(Znchem$SED_pH)
+```
+
+Sediment pH ranged from 7.3-7.9 and increased slightly with increasing total Zn (likely a result of NaOH buffering). Depth x treatment interaction, which was from lower pH in flume-aged deep sediment (7.6), but similar pH in all other treatment combinations (7.8).
+
+###AVS
+```{r Zn sed AVS}
+AVSZn <- aov(AVS/dw_corr~log(MEAN_TOT_Zn)*TREATMENT*DEPTH*DAY,data=Znchem)
+shapiro.test(resid(AVSZn)) #OK
+summary(AVSZn)
+summary(lm(AVS/dw_corr~log10(MEAN_TOT_Zn),data=Znchem))
+with(Znchem,tapply(AVS/dw_corr,list(TREATMENT,NOM_CONC),mean))
+```
+
+AVS was positively related to total Zn for all sediments (8-17 µmol/g).
+
+
+###Total Fe
+```{r Zn sed total Fe}
+FeZn <- aov(TOT_Fe~TREATMENT*DAY*DEPTH,data=Znchem)
+shapiro.test(resid(FeZn)) #OK
+summary(FeZn)
+boxplot(TOT_Fe~TREATMENT,data=Znchem)
+with(Znchem,tapply(TOT_Fe,TREATMENT,sd))
+```
+
+S > F. S = 16.1 g/kg and F = 14.8 g/kg (9% more Fe in freshly spiked)
+
+###Amorphous Fe oxides
+```{r Zn sed HFO}
+AscFeZn <- aov(ASC_Fe/dw_corr~TREATMENT*DAY*DEPTH,data=Znchem)
+shapiro.test(resid(AscFeZn)) #OK
+summary(AscFeZn)
+boxplot(ASC_Fe/dw_corr~DAY,data=Znchem)
+with(Znchem,tapply(ASC_Fe/dw_corr,DAY,mean))/(with(Znchem,tapply(TOT_Fe,DAY,mean))*1000)
+```
+
+6-8% Fe as ascorbate (much lower than Raisin used for the Ni experiment). ASC Fe was lower at day 28 (1000 mg/kg) when compared to day 0 (1150 mg/kg).
+
+###Crystalline Fe oxides
+```{r Zn sed CFO}
+CryFeZn <- aov(log(CRY_Fe/dw_corr)~TREATMENT*DAY*DEPTH,data=Znchem)
+  #Transformed because variance were unequal
+shapiro.test(resid(CryFeZn)) #OK
+summary(CryFeZn)
+boxplot(CRY_Fe/dw_corr~TREATMENT,data=Znchem,log="y")
+with(Znchem,tapply(CRY_Fe/dw_corr,TREATMENT,mean,na.rm=T))/(with(Znchem,tapply(TOT_Fe,TREATMENT,mean))*1000)
+mean(with(Znchem,CRY_Fe/dw_corr/(TOT_Fe*1000)),na.rm=T)
+```
+
+No difference among treatments, times, or depths. Crystalline Fe oxides 42 ± 8% of total Fe.
+
+###Total Mn
+```{r Zn sed total Mn}
+MnZn <- aov(TOT_Mn~TREATMENT*DAY*DEPTH,data=Znchem)
+shapiro.test(resid(MnZn)) #OK
+summary(MnZn)
+boxplot(TOT_Mn~TREATMENT,data=Znchem)
+with(Znchem,tapply(TOT_Mn,TREATMENT,mean))
+sd(Znchem$TOT_Mn)
+```
+
+No differences among treatments, time, or depths. 
+
+###Mn oxides
+```{r Zn sed CFO}
+MnOxZn <- aov(DITH_Mn/dw_corr~TREATMENT*DEPTH*DAY,data=Znchem)
+shapiro.test(resid(MnOxZn)) #OK
+summary(MnOxZn)
+boxplot(DITH_Mn/dw_corr~TREATMENT,data=Znchem) #F < S
+with(Znchem,tapply(DITH_Mn/dw_corr,TREATMENT,sd,na.rm=T))
+with(Znchem,tapply(DITH_Mn/dw_corr,TREATMENT,mean,na.rm=T))/with(Znchem,tapply(TOT_Mn,TREATMENT,mean))
+```
+
+F < S. F 9% > S; Mn total as oxidized Mn F = 65%, S = 66%.
+
+
+###Total Zn
+```{r total Zn}
+modTZn = aov(log(TOT_Zn)~DAY*TREATMENT*DEPTH+log(NOM_CONC),data=Znchem)
+summary(modTZn)
+summary(lm(log(TOT_Zn)~log(NOM_CONC)+TREATMENT,data=Znchem))
+shapiro.test(resid(modTZn)) #OK
+```
+
+S treatments have slightly more total Zn than F. No difference through time or at depths. 
+
+###Porewater Zn
+```{r porewater Zn}
+PoreZn <- aov(log(PORE_Zn)~log(MEAN_TOT_Zn)*TREATMENT,data=Znchem)
+shapiro.test(resid(PoreZn)) #OK
+summary(PoreZn)
+summary(lm(log(PORE_Zn)~log(MEAN_TOT_Zn),data=Znchem))
+plot(PORE_Zn~MEAN_TOT_Zn,data=Znchem,log="xy",col=c("blue","red")[TREATMENT])
+log10(with(Znchem,tapply(MEAN_TOT_Zn,TREATMENT,mean,na.rm=T))/with(Znchem,tapply(PORE_Zn,TREATMENT,mean,na.rm=T))*1000)
+mean(log10(with(RSchem,MEAN_TOT_Zn/PORE_Zn*1000)),na.rm=T)
+```
+
+Porewater Zn was positively correlated with total Zn, no difference between treatments. Zn logKd F = 4.15 and S = 4.10.
+
+##SEM Zn
+```{r SEM Zn}
+SEMZn <- aov(log(SEM_Zn)~log(MEAN_TOT_Zn)*TREATMENT*DEPTH*DAY,data=Znchem)
+shapiro.test(resid(SEMZn)) #OK
+summary(SEMZn)
+plot(log(SEM_Zn)~log(MEAN_TOT_Zn),data=Znchem,col=c("royalblue3","orangered3")[TREATMENT],pch=as.numeric(DEPTH))
+summary(lm(log(SEM_Zn)~log(MEAN_TOT_Zn)*TREATMENT*DEPTH,data=Znchem))
+with(Znchem,tapply(SEM_Zn/dw_corr,list(NOM_CONC,DEPTH,TREATMENT),mean,na.rm=T))/65.39
+```
+
+Positive relationship with total Zn and slightly higher SEM Zn in S treatments in surface sediments only (mostly on the low end of Zn TOT). On average, SEM Zn is 33% greater in surface S than deep S (no difference in F).
+
+###HFO Zn
+```{r HFO Zn}
+AscZn <- aov(log(ASC_Zn/dw_corr)~log(MEAN_TOT_Zn)*TREATMENT*DEPTH*DAY,data=Znchem.no0)
+shapiro.test(resid(AscZn)) #OK
+summary(AscZn)
+summary(lm(log(ASC_Zn/dw_corr)~log(MEAN_TOT_Zn),data=Znchem.no0))
+plot(ASC_Zn/dw_corr~MEAN_TOT_Zn,data=Znchem.no0,log="xy")
+with(Znchem,tapply(ASC_Zn/dw_corr,list(TREATMENT,NOM_CONC),mean,na.rm=T))/with(Znchem,tapply(MEAN_TOT_Zn,list(TREATMENT,NOM_CONC),mean,na.rm=T))
+mean(with(Znchem.no0,(ASC_Zn/dw_corr)/MEAN_TOT_Zn))
+```
+
+Positive relationship with ln(Zn asc) and ln(Zn total), but no difference among treatments, times, or days. %ASC was related to total Zn: <1% of total Zn in treatments 150-1100. 5% in 2100 mg/kg treatment. Evidence of saturation of ZnS and moving to Fe ligand.
+
+###CFO Zn
+```{r CFO Zn}
+CryZn <- aov(log(CRY_Zn/dw_corr)~log(MEAN_TOT_Zn)*TREATMENT*DEPTH*DAY,data=Znchem.no0)
+shapiro.test(resid(CryZn)) #OK
+summary(CryZn)
+summary(lm(log(CRY_Zn/dw_corr)~log(MEAN_TOT_Zn),data=Znchem.no0))
+plot(CRY_Zn~MEAN_TOT_Zn,data=Znchem.no0,col=c("blue","red")[TREATMENT],log="xy")
+1/exp(0.1423) #fresh spike = 87% of flume aged (15% more in flume aged)
+with(Znchem,tapply(CRY_Zn/dw_corr,list(TREATMENT,NOM_CONC),mean,na.rm=T))/with(Znchem,tapply(MEAN_TOT_Zn,list(TREATMENT,NOM_CONC),mean,na.rm=T))
+sd(with(Znchem.no0,(CRY_Zn/dw_corr)/MEAN_TOT_Zn))
+```
+
+Positive relationship with ln(Zn cry) and ln(Zn total). %CRY was 25-46% of the total Zn.
