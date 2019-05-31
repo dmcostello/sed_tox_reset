@@ -66,11 +66,7 @@ __Zn_Ha.csv__
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 |Tissue_Zn|*H. azteca* body Zn concentration|ng Zn/mg dw|
 
-<<<<<<< HEAD
 _Variable codes and notes_  
-=======
-_Variable codes and notes_
->>>>>>> a8e5c744a6334d276c871e23fe456fcfb1c75bb0
 Treat: F = aged S = freshly spiked;  
 SEMAVSfOC2: Correction was to set negative values (i.e., AVS in excess of SEM) to 1 to allow for log-linear regression;  
 Count: A total of 10 *H. azteca* were added to each beaker  
@@ -166,7 +162,7 @@ __Zn_sedchem.csv__
 |Pore_Fe|Porewater Fe concentration|µg/L|
 |Pore_Mn|Porewater Mn concentration|µg/L|
 
-_Variable codes and notes_
+_Variable codes and notes_  
 **Left this here in case you want to add anything**
 
 __Cu_water.csv__
@@ -193,32 +189,5 @@ __Ni_water.csv__
 |Dis_Ni|Dissolved Ni concentration|µg/L|
 |Ni_flux|Ni flux from sediment to porewater?|Units?|
 
-_Variable codes and notes_
-**Left this here in case you want to add anything**
-
-__Cu_water.csv__
-
-|Parameter     |Definition   |Units  |
-| ------------- |-----------| -----|
-|Sediment| Sediment type||
-|Nom_Cu|Nominal Cu treatment|mg Cu/kg dw|
-|Treat|Sediment preparation treatment|
-|Day|Sampling day|
-|Mean_TOT_Cu|Mean sediment total extractable Cu|mg Cu/kg dw|
-|Dis_Cu|Dissolved Cu concentration|µg/L|
-|Cu_flux|Cu flux from sediment to porewater?|Units?|
-
-__Ni_water.csv__
-
-|Parameter     |Definition   |Units  |
-| ------------- |-----------| -----|
-|Sediment| Sediment type||
-|Nom_Ni|Nominal Ni treatment|mg Ni/kg dw|
-|Treat|Sediment preparation treatment|
-|Day|Sampling day|
-|Mean_TOT_Ni|Mean sediment total extractable Ni|mg Ni/kg dw|
-|Dis_Ni|Dissolved Ni concentration|µg/L|
-|Ni_flux|Ni flux from sediment to porewater?|Units?|
-
-_Variable codes and notes_
+_Variable codes and notes_  
 **Left this here in case you want to add anything**
