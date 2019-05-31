@@ -152,7 +152,7 @@ __Cu_water.csv__
 |Day|Sampling day|
 |Mean_TOT_Cu|Mean sediment total extractable Cu|mg Cu/kg dw|
 |Dis_Cu|Dissolved Cu concentration|µg/L|
-|Cu_flux|Cu flux from sediment to surface water|µg Cu/cm^2^/d|
+|Cu_flux|Cu flux from sediment to surface water|µg Cu/cm<sup>2</sup>/d|
 
 __Ni_water.csv__
 
@@ -164,7 +164,7 @@ __Ni_water.csv__
 |Day|Sampling day|
 |Mean_TOT_Ni|Mean sediment total extractable Ni|mg Ni/kg dw|
 |Dis_Ni|Dissolved Ni concentration|µg/L|
-|Ni_flux|Ni flux from sediment to surface water|µg Ni/cm^2^/d|
+|Ni_flux|Ni flux from sediment to surface water|µg Ni/cm<sup>2</sup>/d|
 
 _Variable codes and notes_  
 Treat: F = aged; S = freshly spiked  
