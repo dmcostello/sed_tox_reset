@@ -66,11 +66,6 @@ __Zn_Ha.csv__
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 |Tissue_Zn|*H. azteca* body Zn concentration|ng Zn/mg dw|
 
-_Variable codes and notes_  
-Treat: F = aged S = freshly spiked;  
-SEMAVSfOC2: Correction was to set negative values (i.e., AVS in excess of SEM) to 1 to allow for log-linear regression;  
-Count: A total of 10 *H. azteca* were added to each beaker  
-
 __Cu_sedchem.csv__
 
 |Parameter     |Definition   |Units  |
@@ -82,25 +77,19 @@ __Cu_sedchem.csv__
 |Depth|Sediment depth treatment|
 |Sed_pH|pH of sediment samples|
 |LOI| Organic matter content from loss-on-ignition|%|
-|AVS|Acid-volatile sulfide concentration per gram of dry weight|umol/g dw|
+|AVS|Acid-volatile sulfide concentration per gram of dry weight|µmol/g dw|
 |Mean_TOT_Cu|Mean sediment total extractable Cu|mg Cu/kg dw|
 |TOT_Cu|Sediment total extractable Cu|µmol Cu/kg dw|
 |TOT_Fe|Sediment total extractable Fe|µmol Fe/kg dw|
 |TOT_Mn|Sediment total extractable Mn|µmol Mn/kg dw|
-|SEM_Cu|Cu associated with metal sulfide|ug/g dw|
-|SEM_Fe|Concentration of simultaneously extracted Fe|ug/g dw|
-|SEM_Mn|Concentration of simultaneously extracted Mn|ug/g dw|
-|ASC_Cu|Cu associated with amorphous oxides|ug/g dw|
-|ASC_Fe|Amorphous Fe oxide concentration|ug/g dw|
-|ASC_Mn|Amorphous Mn oxide concentration|ug/g dw|
-|DITH_Cu|Cu associated with total extractable metal oxides|ug/g dw|
-|DITH_Fe|Total extractable Fe oxide concentration|ug/g dw|
-|DITH_Mn|Total extractable Mn oxide concentration|ug/g dw|
+|SEM_Cu|Cu associated with metal sulfide|µg/g dw|
+|ASC_Cu|Cu associated with amorphous oxides|µg/g dw|
+|ASC_Fe|Amorphous Fe oxide concentration|µg/g dw|
+|DITH_Cu|Cu associated with total extractable metal oxides|µg/g dw|
+|DITH_Fe|Total extractable Fe oxide concentration|µg/g dw|
+|DITH_Mn|Total extractable Mn oxide concentration|µg/g dw|
 |dw_corr|Sediment dry weight correction|
 |Pore_Cu|Porewater Cu concentration|µg/L|
-|Pore_Fe|Porewater Fe concentration|µg/L|
-|Pore_Mn|Porewater Mn concentration|µg/L|
-|Pore_DOC|Porewater dissolved organic carbon concentration|µg/L|
 
 __Ni_sedchem.csv__
 
@@ -113,24 +102,19 @@ __Ni_sedchem.csv__
 |Depth|Sediment depth treatment|
 |Sed_pH|pH of sediment samples|
 |LOI| Organic matter content from loss-on-ignition|%|
-|AVS|Acid-volatile sulfide concentration per gram of dry weight|umol/g dw|
+|AVS|Acid-volatile sulfide concentration per gram of dry weight|µmol/g dw|
 |Mean_TOT_Ni|Mean sediment total extractable Ni|mg Ni/kg dw|
 |TOT_Ni|Sediment total extractable Ni|µmol Ni/kg dw|
 |TOT_Fe|Sediment total extractable Fe|µmol Fe/kg dw|
 |TOT_Mn|Sediment total extractable Mn|µmol Mn/kg dw|
 |SEM_Ni|Ni associated with metal sulfide|ug/g dw|
-|SEM_Fe|Concentration of simultaneously extracted Fe|ug/g dw|
-|SEM_Mn|Concentration of simultaneously extracted Mn|ug/g dw|
-|ASC_Ni|Ni associated with amorphous oxides|ug/g dw|
-|ASC_Fe|Amorphous Fe oxide concentration|ug/g dw|
-|ASC_Mn|Amorphous Mn oxide concentration|ug/g dw|
-|DITH_Ni|Ni associated with total extractable metal oxides|ug/g dw|
-|DITH_Fe|Total extractable Fe oxide concentration|ug/g dw|
-|DITH_Mn|Total extractable Mn oxide concentration|ug/g dw|
+|ASC_Ni|Ni associated with amorphous oxides|µg/g dw|
+|ASC_Fe|Amorphous Fe oxide concentration|µg/g dw|
+|DITH_Ni|Ni associated with total extractable metal oxides|µg/g dw|
+|DITH_Fe|Total extractable Fe oxide concentration|µg/g dw|
+|DITH_Mn|Total extractable Mn oxide concentration|µg/g dw|
 |dw_corr|Sediment dry weight correction|
 |Pore_Ni|Porewater Ni concentration|µg/L|
-|Pore_Mn|Porewater Mn concentration|µg/L|
-|Pore_DOC|Porewater dissolved organic carbon concentration|µg/L|
 
 __Zn_sedchem.csv__
 (Raisin sediment only)
@@ -148,22 +132,15 @@ __Zn_sedchem.csv__
 |TOT_Zn|Sediment total extractable Zn|µmol Zn/kg dw|
 |TOT_Fe|Sediment total extractable Fe|µmol Fe/kg dw|
 |TOT_Mn|Sediment total extractable Mn|µmol Mn/kg dw|
-|SEM_Zn|Zn associated with metal sulfide|ug/g dw|
-|SEM_Fe|Concentration of simultaneously extracted Fe|ug/g dw|
-|SEM_Mn|Concentration of simultaneously extracted Mn|ug/g dw|
-|ASC_Zn|Zn associated with amorphous oxides|ug/g dw|
-|ASC_Fe|Amorphous Fe oxide concentration|ug/g dw|
-|ASC_Mn|Amorphous Mn oxide concentration|ug/g dw|
-|DITH_Zn|Zn associated with total extractable metal oxides|ug/g dw|
-|DITH_Fe|Total extractable Fe oxide concentration|ug/g dw|
-|DITH_Mn|Total extractable Mn oxide concentration|ug/g dw|
+|SEM_Zn|Zn associated with metal sulfide|µg/g dw|
+|ASC_Zn|Zn associated with amorphous oxides|µg/g dw|
+|ASC_Fe|Amorphous Fe oxide concentration|µg/g dw|
+|DITH_Zn|Zn associated with total extractable metal oxides|µg/g dw|
+|DITH_Fe|Total extractable Fe oxide concentration|µg/g dw|
+|DITH_Mn|Total extractable Mn oxide concentration|µg/g dw|
 |dw_corr|Sediment dry weight correction|
 |Pore_Zn|Porewater Zn concentration|µg/L|
-|Pore_Fe|Porewater Fe concentration|µg/L|
-|Pore_Mn|Porewater Mn concentration|µg/L|
-
-_Variable codes and notes_  
-**Left this here in case you want to add anything**
+|H2O_Zn|Surface water Zn concentration|µg/L|  
 
 __Cu_water.csv__
 
@@ -175,7 +152,7 @@ __Cu_water.csv__
 |Day|Sampling day|
 |Mean_TOT_Cu|Mean sediment total extractable Cu|mg Cu/kg dw|
 |Dis_Cu|Dissolved Cu concentration|µg/L|
-|Cu_flux|Cu flux from sediment to porewater?|Units?|
+|Cu_flux|Cu flux from sediment to surface water|µg Cu/cm^2^/d|
 
 __Ni_water.csv__
 
@@ -187,7 +164,12 @@ __Ni_water.csv__
 |Day|Sampling day|
 |Mean_TOT_Ni|Mean sediment total extractable Ni|mg Ni/kg dw|
 |Dis_Ni|Dissolved Ni concentration|µg/L|
-|Ni_flux|Ni flux from sediment to porewater?|Units?|
+|Ni_flux|Ni flux from sediment to surface water|µg Ni/cm^2^/d|
 
 _Variable codes and notes_  
-**Left this here in case you want to add anything**
+Treat: F = aged; S = freshly spiked  
+SEMAVSfOC2: Correction was to set negative values (i.e., AVS in excess of SEM) to 1 to allow for log-linear regression  
+Count: A total of 10 *H. azteca* were added to each beaker  
+Day: 0 = sediment added to beaker for all tests; 10, 7, 1 = *H. azteca* added to beaker for Cu, Ni, and Zn tests, respectively; 38, 35, and 28 = experiment terminated for Cu, Ni, and Zn tests respectively  
+Depth: surface = 0-1 cm, deep = 1-3 cm  
+"NA" cell = sample collected, but no good analytical data; blank cell = no data collected

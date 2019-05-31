@@ -102,20 +102,21 @@ Dow: Negative relationship between CuTOT and AVS (p < 0.001). No other differenc
 
 ###Total Fe
 ```{r Cu sed total Fe}
-OTFe <- lm(TOT_Fe~Day*Treat,data=Ocoee)
-shapiro.test(resid(OTFe))
+OTFe <- lm(TOT_Fe~Day*Treat*Depth,data=Ocoee)
+shapiro.test(resid(OTFe)) #OK
 summary.aov(OTFe)
-boxplot(TOT_Fe~Day,data=Ocoee)
-tapply(Ocoee$TOT_Fe,Ocoee$Day,mean,na.rm=T)
+boxplot(TOT_Fe~Depth*Day,data=Ocoee)
+tapply(Ocoee$TOT_Fe,Ocoee$Depth,mean,na.rm=T)
 
-DTFe <- lm(log(TOT_Fe)~Day*Treat,data=Dow)
-shapiro.test(resid(DTFe))
+DTFe <- lm(log(TOT_Fe)~Day*Treat*Depth,data=Dow)
+shapiro.test(resid(DTFe)) #OK
 summary.aov(DTFe)
+boxplot(TOT_Fe~Depth*Day,data=Dow)
 ```
 
-Ocoee: Decline in Fe through time (p = 0.003): d10 = 37 g/kg and d38 = 33 g/kg
+Ocoee: Greater Fe in surface sediment (p = 0.002): deep = 35 g/kg and surface = 389 g/kg. The difference is much greater at day 38 than day 10 (Day x depth p = 0.09)
 
-Dow: No change through time, no difference between treatments. Mean 5.3 g/kg
+Dow: Greater Fe in surface sediment on day 38 than day 10 (p < 0.001).
 
 ###Amorphous Fe oxides
 ```{r Cu sed HFO}
@@ -158,22 +159,22 @@ Dow: No difference among treatments. Weak decline in Cry Fe oxides in surface se
 
 ###Total Mn
 ```{r Cu sed total Mn}
-OMn <- lm(log(TOT_Mn)~Day*Treat,data=Ocoee)
+OMn <- lm(log(TOT_Mn)~Day*Treat*Depth,data=Ocoee)
 shapiro.test(resid(OMn)) #OK
 summary.aov(OMn)
-boxplot(TOT_Mn~Day*Treat,data=Ocoee)
+boxplot(TOT_Mn~Depth,data=Ocoee)
 
-DMn <- lm(log(TOT_Mn)~Day*Treat,data=Dow)
-shapiro.test(resid(DMn)) #OK
+DMn <- lm(log(TOT_Mn)~Day*Treat*Depth,data=Dow)
+shapiro.test(resid(DMn)) #p = 0.01
 summary.aov(DMn)
-summary(lm(log(TOT_Mn)~Day,data=Dow))
-  1/exp(0.115) #11% decline through time
+TukeyHSD(aov(log(TOT_Mn)~Day*Depth,data=Dow))
+boxplot(TOT_Mn~Day*Depth,data=Dow,log="y")
 boxplot(TOT_Mn~Day*Treat,data=Dow,log="y")
 ```
 
-Ocoee: No difference through time or between treatments.
+Ocoee: No difference through time or between treatments. Surface sediments have slightly lower Mn.
 
-Dow: No difference between treatments but ~11% decline through time.
+Dow: Small increase through time in F treatment only. Surface sediment increased in total Mn but deep sediment was stable. Initially, surface had lower total Mn than deep.
 
 ###Mn oxides
 ```{r Cu sed CFO}
@@ -223,7 +224,7 @@ tapply(Dow$TOT_Cu,list(Dow$Nom_Cu,Dow$Treat,Dow$Depth),mean,na.rm=T)
 
 Ocoee: all surface sediments were ~80% of the total Cu in deep sediment, but total Cu is the same in F and S treatments
 
-Dow: no difference among treatments, depths, or times
+Dow: no difference among treatments, depths, or times.
 
 ###Porewater Cu
 ```{r porewater Cu}
@@ -616,7 +617,7 @@ plot(SEM_Ni/dw_corr~Mean_TOT_Ni,data=Raisin.no0,log="xy",col=c("blue","red")[Tre
 with(Raisin,tapply(SEM_Ni/dw_corr,list(Treat,Nom_Ni),mean,na.rm=T))/with(Raisin,tapply(Mean_TOT_Ni,list(Treat,Nom_Ni),mean,na.rm=T))
 
 BmodSN = aov(log(SEM_Ni/dw_corr)~log(Mean_TOT_Ni)*Day*Treat*Depth,data=Burn.no0)
-shapiro.test(resid(BmodSN)) #OK p = 0.08
+shapiro.test(resid(BmodSN)) #OK
 summary(BmodSN)
 plot(SEM_Ni/dw_corr~Mean_TOT_Ni,data=Burn,log="xy",col=c("blue","red")[Treat])
 summary(lm(log(SEM_Ni/dw_corr)~log(Mean_TOT_Ni)+Day+Treat+Depth+Day:Treat,data=Burn.no0))
