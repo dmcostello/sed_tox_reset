@@ -32,8 +32,8 @@ __Cu_Ha.csv__
 |Nom_Cu|Nominal Cu treatment|mg Cu/kg dw|
 |Treat|Sediment preparation treatment|
 |TOT_Cu|Mean sediment total extractable Cu|mg Cu/kg dw|
-|SEMAVSfOC|Bioavailable Cu|µmol Cu/g OM|
-|SEMAVSfOC2|Corrected bioavailable Cu|µmol Cu/g OM|
+|SEMAVSfOC|Bioavailable Cu|µmol Cu/g C|
+|SEMAVSfOC2|Corrected bioavailable Cu|µmol Cu/g C|
 |Count|Total count of living *H. azteca*|Number alive|
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 
@@ -46,8 +46,8 @@ __Ni_Ha.csv__
 |Nom_Ni|Nominal Ni treatment|mg Ni/kg dw|
 |Treat|Sediment preparation treatment|
 |TOT_Ni|Mean sediment total extractable Ni|mg Ni/kg dw|
-|SEMAVSfOC|Bioavailable Ni|µmol Ni/g OM|
-|SEMAVSfOC2|Corrected bioavailable Ni|µmol Ni/g OM|
+|SEMAVSfOC|Bioavailable Ni|µmol Ni/g C|
+|SEMAVSfOC2|Corrected bioavailable Ni|µmol Ni/g C|
 |Count|Total count of living *H. azteca*|Number alive|
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 |Tissue_Ni|*H. azteca* body Ni concentration|ng Ni/mg dw|
@@ -60,8 +60,8 @@ __Zn_Ha.csv__
 |Nom_Zn|Nominal Zn treatment|mg Zn/kg dw|
 |Treat|Sediment preparation treatment|
 |TOT_Zn|Mean sediment total extractable Zn|mg Zn/kg dw|
-|SEMAVSfOC|Bioavailable Zn|µmol Zn/g OM|
-|SEMAVSfOC2|Corrected bioavailable Zn|µmol Zn/g OM|
+|SEMAVSfOC|Bioavailable Zn|µmol Zn/g C|
+|SEMAVSfOC2|Corrected bioavailable Zn|µmol Zn/g C|
 |Count|Total count of living *H. azteca*|Number alive|
 |RGR|*H. azteca* relative growth rate|mg/mg/d|
 |Tissue_Zn|*H. azteca* body Zn concentration|ng Zn/mg dw|
